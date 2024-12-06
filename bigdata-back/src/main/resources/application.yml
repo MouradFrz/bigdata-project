@@ -1,3 +1,13 @@
 spring:
   application:
     name: bigdata-back
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test
+server:
+  address: localhost
+  port: 9999
+  servlet:
+    context-path: /api/v1
