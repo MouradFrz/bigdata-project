@@ -1,26 +1,46 @@
 package com.example.bigdataback.controller;
 
+import com.example.bigdataback.dto.SearchCriteria;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.service.ProductService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(value = "/products")
+@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+@Slf4j
 public class ProductController {
 
     private final ProductService productService;
 
-    public ProductController(ProductService productService) {
-        this.productService = productService;
-    }
+    @GetMapping("/search")
+    public ResponseEntity<Page<Product>> searchProducts(
+            @RequestParam(required = false) String mainCategory,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        log.info("Received request with mainCategory: '{}', page: {}, size: {}",
+                mainCategory, page, size);
 
-    @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
-        return ResponseEntity.ok(this.productService.getAllProducts());
+        SearchCriteria criteria = SearchCriteria.builder()
+                .mainCategory(mainCategory)
+                .keyword(keyword)
+                .minRating(minRating)
+                .minPrice(minPrice)
+                .page(page)
+                .size(size)
+                .build();
+
+        Page<Product> results = productService.search(criteria);
+        log.info("Returning page {} with {} results", page, results.getNumberOfElements());
+        return ResponseEntity.ok(results);
     }
 }

@@ -1,32 +1,41 @@
 package com.example.bigdataback.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.bson.BsonTimestamp;
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.math.BigDecimal;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.bson.types.ObjectId;
+import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Document(collection = "products")
+@Document(collection = "metadata")
 public class Product {
-
     @Id
-    @JsonProperty(value = "ObjectId")
     private ObjectId id;
 
-    @JsonProperty(value = "name")
-    private String name;
+    @Field("main_category")
+    private String mainCategory;
 
-    @JsonProperty(value = "price")
-    private BigDecimal price;
+    private String title;
 
-    @JsonProperty(value = "date")
-    private BsonTimestamp date;
+    @Field("average_rating")
+    private Double averageRating;
+
+    @Field("rating_number")
+    private Integer ratingNumber;
+
+    private List<String> features;
+    private List<String> description;
+    private Double price;
+    private List<ProductImage> images;
+    private List<ProductVideo> videos;
+    private String store;
+    private List<String> categories;
+    private ProductDetails details;
+
+    @Field("parent_asin")
+    private String parentAsin;
+
+    @Field("bought_together")
+    private Object boughtTogether;
 }

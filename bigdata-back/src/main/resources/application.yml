@@ -3,11 +3,24 @@ spring:
     name: bigdata-back
   data:
     mongodb:
-      host: localhost
-      port: 27017
-      database: test
+      uri: mongodb://localhost:27017/amazon_reviews
+      database: amazon_reviews
+
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          mongodb:
+            core:
+              MongoTemplate: DEBUG
+            repository:
+              Query: DEBUG
+    com:
+      example:
+        bigdataback: DEBUG
+
 server:
-  address: localhost
   port: 9999
   servlet:
     context-path: /api/v1
