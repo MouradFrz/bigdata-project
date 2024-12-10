@@ -60,13 +60,13 @@ function ProductCard({ product }: { product: Product }) {
                         <p className="font-semibold text-white-dark mt-4">{product.description[0] ?? 'This product has no description'}</p>
                         <div className="flex justify-between mt-8 align-bottom">
                             <div className="flex justify-between items-center gap-5">
-                                <p className="text-3xl text-red-600 font-extrabold">{product.price ?? 'Price unavailable'}</p>
+                                <p className="text-3xl text-red-600 font-extrabold">{product.price ? product.price + ' $' : 'Price unavailable'} </p>
                                 <p className="text-blue-600">{product.main_category}</p>
                             </div>
                             <div className="flex justify-between items-center gap-5 ">
                                 <div className="flex">
-                                    {displayStars(product.average_rating)}
-                                    <p className="ms-3">{product.average_rating}</p>
+                                    {displayStars(product.averageRating)}
+                                    <p className="ms-3">{product.averageRating}</p>
                                 </div>
                                 <button className=" btn btn-sm btn-primary">View Product</button>
                             </div>

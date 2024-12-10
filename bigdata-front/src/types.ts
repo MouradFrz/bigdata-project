@@ -1,7 +1,7 @@
 export interface Product {
     main_category: string;
     title: string;
-    average_rating: number;
+    averageRating: number;
     rating_number: number;
     features: string[];
     description: string[];
@@ -18,4 +18,12 @@ export interface Product {
     details: object;
     parent_asin: string;
     bought_together: string | null;
+}
+
+export interface PaginatedSearchResponse {
+    content: Product[];
+    pageable: {
+        pageNumber: number;
+    };
+    totalPages: number;
 }

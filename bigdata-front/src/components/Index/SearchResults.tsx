@@ -1,9 +1,9 @@
 import ProductCard from './ProductCard';
-import { mockProducts } from '../../mockapi/mockProducts';
-function SearchResults() {
+import { Product } from '../../types';
+function SearchResults({ products }: { products: Product[] }) {
     return (
         <div>
-            {mockProducts.map((product) => (
+            {products?.map((product) => (
                 <ProductCard product={product} />
             ))}
         </div>
