@@ -23,7 +23,7 @@ public class QueryMapper {
             return productService.findProductsWithPriceGreaterThan(userRequest.getSearchCriteria());
         }
 
-        if (userRequest.getRequest().equals(TOP_RATED_PRODUCTS)) {
+        if (userRequest.getRequest().equals(PRODUCTS_WITH_AVERAGE_RATING_GREATER_THAN)) {
             log.info("Processing top rated products");
             userRequest.getSearchCriteria().setMinRating(MIN_RATING);
             log.info("Rating parameters set to {}", MIN_RATING);
