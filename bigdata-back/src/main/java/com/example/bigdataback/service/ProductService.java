@@ -2,6 +2,7 @@ package com.example.bigdataback.service;
 
 import com.example.bigdataback.dto.SearchCriteria;
 import com.example.bigdataback.entity.Product;
+import com.example.bigdataback.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,25 +21,26 @@ import java.util.List;
 public class ProductService {
 
     private final MongoTemplate mongoTemplate;
+    private final ProductRepository productRepository;
 
     public Page<Product> search(SearchCriteria criteria) {
-            Query query = buildQuery(criteria);
+        Query query = buildQuery(criteria);
 
-            // compter le total sans pagination
-            long total = mongoTemplate.count(query, Product.class, "metadata");
-            log.info("Total documents before pagination: {}", total);
+        // compter le total sans pagination
+        long total = mongoTemplate.count(query, Product.class, "metadata");
+        log.info("Total documents before pagination: {}", total);
 
-            // Ajouter la pagination à la requête
-            PageRequest pageRequest = PageRequest.of(criteria.getPage(), criteria.getSize());
-            query.with(pageRequest);
+        // Ajouter la pagination à la requête
+        PageRequest pageRequest = PageRequest.of(criteria.getPage(), criteria.getSize());
+        query.with(pageRequest);
 
-            // Exécuter la requête avec pagination
-            List<Product> products = mongoTemplate.find(query, Product.class, "metadata");
-            log.info("Retrieved {} products for page {} of size {}",
-                    products.size(), criteria.getPage(), criteria.getSize());
+        // Exécuter la requête avec pagination
+        List<Product> products = mongoTemplate.find(query, Product.class, "metadata");
+        log.info("Retrieved {} products for page {} of size {}",
+                products.size(), criteria.getPage(), criteria.getSize());
 
-            return new PageImpl<>(products, pageRequest, total);
-        }
+        return new PageImpl<>(products, pageRequest, total);
+    }
 
     private Query buildQuery(SearchCriteria criteria) {
         Query query = new Query();
@@ -65,5 +67,17 @@ public class ProductService {
         }
 
         return query;
+    }
+
+    public Page<Product> findProductsWithPriceGreaterThan(SearchCriteria criteria) {
+        PageRequest pageRequest = PageRequest.of(criteria.getPage(), criteria.getSize());
+        List<Product> products = this.productRepository.findProductsWithPriceGreaterThan(criteria.getMinPrice(), pageRequest);
+        return new PageImpl<>(products, pageRequest, products.size());
+    }
+
+    public Page<Product> findProductsWithTopRating(SearchCriteria criteria) {
+        PageRequest pageRequest = PageRequest.of(criteria.getPage(), criteria.getSize());
+        List<Product> products = this.productRepository.findProductsWithRatingGreaterThan(criteria.getMinRating(), pageRequest);
+        return new PageImpl<>(products, pageRequest, products.size());
     }
 }
