@@ -10,10 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SearchCriteria {
-    private String keyword;
-    private String mainCategory;
-    private Double minRating;
-    private Double minPrice;
+
+    private String request;
 
     @Builder.Default
     private int page = 0;
