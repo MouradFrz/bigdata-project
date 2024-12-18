@@ -11,21 +11,19 @@ function useFetch<T>(url: string) {
         setLoading(true);
         setData(null);
         setError(null);
-        const source = axios.CancelToken.source();
+        // const source = axios.CancelToken.source();
         axios
-            .get<any, AxiosResponse<T>>(url, { cancelToken: source.token })
+            .get<any, AxiosResponse<T>>(url)
             .then((res) => {
-                setLoading(false);
                 setError(null);
                 setData(res.data);
             })
             .catch((err) => {
-                setLoading(false);
                 setError('An error occurred. Awkward..');
+            })
+            .finally(() => {
+                setLoading(false);
             });
-        return () => {
-            source.cancel();
-        };
     }, [url]);
 
     return { data, loading, error };

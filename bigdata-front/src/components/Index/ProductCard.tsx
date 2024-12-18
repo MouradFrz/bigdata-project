@@ -1,6 +1,7 @@
 import React from 'react';
 import { Product } from '../../types';
-const displayStars = (rating: number) => {
+import { useNavigate } from 'react-router-dom';
+export const displayStars = (rating: number) => {
     const fullStarsCount = Math.floor(rating);
     const hasHalfStar = fullStarsCount + 0.5 <= rating;
     const emptyStars = 5 - (fullStarsCount + (hasHalfStar ? 1 : 0));
@@ -46,6 +47,7 @@ const displayStars = (rating: number) => {
 };
 
 function ProductCard({ product }: { product: Product }) {
+    const navigate = useNavigate();
     return (
         <div className="mb-5 w-full justify-center">
             <div className="w-full bg-white shadow-[4px_6px_10px_-3px_#bfc9d4] rounded border border-white-light dark:border-[#1b2e4b] dark:bg-[#191e3a] dark:shadow-none">
@@ -68,7 +70,14 @@ function ProductCard({ product }: { product: Product }) {
                                     {displayStars(product.averageRating)}
                                     <p className="ms-3">{product.averageRating}</p>
                                 </div>
-                                <button className=" btn btn-sm btn-primary">View Product</button>
+                                <button
+                                    className=" btn btn-sm btn-primary"
+                                    onClick={() => {
+                                        navigate(`/product/${product.parent_asin}`);
+                                    }}
+                                >
+                                    View Product
+                                </button>
                             </div>
                         </div>
                     </div>
