@@ -1,6 +1,6 @@
 package com.example.bigdataback.service;
 
-import com.example.bigdataback.dto.SearchCriteria;
+import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +21,8 @@ public class ProductService {
     private final MongoTemplate mongoTemplate;
     private final ProductRepository productRepository;
 
-    public Page<Product> findByParsedQuery(SearchCriteria searchCriteria, String query) {
-        PageRequest pageRequest = PageRequest.of(searchCriteria.getPage(), searchCriteria.getSize());
+    public Page<Product> findByParsedQuery(UserRequest userRequest, String query) {
+        PageRequest pageRequest = PageRequest.of(userRequest.getPage(), userRequest.getSize());
         List<Product> products = this.productRepository.findByParsedQuery(query, pageRequest);
         return new PageImpl<>(products, pageRequest, products.size());
     }

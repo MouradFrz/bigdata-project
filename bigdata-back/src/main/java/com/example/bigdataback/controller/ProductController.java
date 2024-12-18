@@ -1,6 +1,6 @@
 package com.example.bigdataback.controller;
 
-import com.example.bigdataback.dto.SearchCriteria;
+import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.parser.QueryParser;
 import com.example.bigdataback.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +19,10 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    public ResponseEntity<?> processingUserRequest(@RequestBody SearchCriteria searchCriteria) {
-        log.info("Received user request.......... {}", searchCriteria.getRequest());
-        Document query = QueryParser.parseQuery(searchCriteria.getRequest());
+    public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
+        log.info("Received user request.......... {}", userRequest.getRequest());
+        Document query = QueryParser.parseQuery(userRequest.getRequest());
         log.info("Parsed query.........{}", query.toJson());
-        return ResponseEntity.ok(productService.findByParsedQuery(searchCriteria, query.toJson()));
+        return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query.toJson()));
     }
 }
