@@ -1,13 +1,14 @@
+import { useState } from 'react';
 import SearchBar from '../../components/Index/SearchBar';
 import SearchResults from '../../components/Index/SearchResults';
 import Loader from '../../components/Loader';
 import useIndexVM from './indexVM';
 const Index = () => {
-    const { incrementCurrentPage, decrementCurrentPage, data, loading, error, displayedProducts, currentPage } = useIndexVM();
+    const { incrementCurrentPage, decrementCurrentPage, data, loading, error, displayedProducts, currentPage, searchKeyword, setSearchKeyword } = useIndexVM();
     if (!error)
         return (
             <div className="container">
-                <SearchBar />
+                <SearchBar searchKeyword={searchKeyword} setSearchKeyword={setSearchKeyword} />
                 <h1 className="font-bold text-xl my-4">Products</h1>
                 {loading ? (
                     <div className="flex justify-center">

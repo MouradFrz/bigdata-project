@@ -6,10 +6,10 @@ const searchEndpoint = 'http://localhost:9999/api/v1/products/search';
 function useIndexVM() {
     const [currentPage, setCurrentPage] = useState<number>(0);
     const [displayedProducts, setDisplayedProducts] = useState<Product[] | null>(null);
-    const { data, loading, error } = useFetch<PaginatedSearchResponse>(`${searchEndpoint}?page=${currentPage}`);
+    const [searchKeyword, setSearchKeyword] = useState<string>('');
+    const { data, loading, error } = useFetch<PaginatedSearchResponse>(`${searchEndpoint}?page=${currentPage}&keyword=${searchKeyword}`);
     useEffect(() => {
         if (data?.content) {
-            console.log(data.content);
             setDisplayedProducts(data?.content);
         }
     }, [data]);
@@ -27,7 +27,7 @@ function useIndexVM() {
             return prev - 1;
         });
     };
-    return { incrementCurrentPage, decrementCurrentPage, data, loading, error, displayedProducts, currentPage };
+    return { incrementCurrentPage, decrementCurrentPage, data, loading, error, displayedProducts, currentPage, searchKeyword, setSearchKeyword };
 }
 
 export default useIndexVM;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-function SearchBar() {
+function SearchBar({ searchKeyword, setSearchKeyword }: { searchKeyword: string; setSearchKeyword: (arg0: string) => void }) {
     const [focus, setFocus] = useState(false);
 
     const overlaySearchClick = () => {
@@ -19,6 +19,10 @@ function SearchBar() {
                 <input
                     type="text"
                     placeholder="Let's find your question in fast way"
+                    value={searchKeyword}
+                    onChange={(ev) => {
+                        setSearchKeyword(ev.target.value);
+                    }}
                     className="form-input border-0 border-l rounded-none bg-white  focus:shadow-[0_0_5px_2px_rgb(194_213_255_/_62%)] dark:shadow-[#1b2e4b] placeholder:tracking-wider focus:outline-none py-3"
                 />
             </div>
