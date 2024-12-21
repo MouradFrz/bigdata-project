@@ -1,0 +1,44 @@
+import React from 'react';
+import AnimateHeight from 'react-animate-height';
+import { useState } from 'react';
+import { Review } from '../../types';
+import { displayStars } from '../Index/ProductCard';
+function Accordion({ reviews }: { reviews: Review[] }) {
+    const [active1, setActive1] = useState<string>('1');
+    const togglePara1 = (value: string) => {
+        setActive1((oldValue) => {
+            return oldValue === value ? '' : value;
+        });
+    };
+    return (
+        <div className="mb-5">
+            {reviews.map((review, index) => {
+                return (
+                    <div className="border border-[#d3d3d3] dark:border-[#3b3f5c] rounded font-semibold">
+                        <div className="border-b h-min border-[#d3d3d3] dark:border-[#3b3f5c]">
+                            <button type="button" className={` p-4 w-full flex items-center text-dark dark:bg-[#1b2e4b]`} onClick={() => togglePara1(String(index))}>
+                                <div className="flex justify-between w-full">
+                                    <div className="flex">
+                                        <p>{review.title}</p>
+                                        <span className="flex ms-4">{displayStars(review.rating)}</span>
+                                    </div>
+                                    <div>{review.verified_purchase ? 'checked' : 'Not Verified'}</div>
+                                </div>
+                                <div className={` ltr:ml-auto rtl:mr-auto`}></div>
+                            </button>
+                            <div>
+                                <AnimateHeight duration={300} height={active1 === String(index) ? 'auto' : 0}>
+                                    <div className="space-y-2 p-4 text-white-dark text-[13px]">
+                                        <p>{review.text}</p>
+                                    </div>
+                                </AnimateHeight>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+export default Accordion;

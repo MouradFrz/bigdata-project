@@ -1,7 +1,9 @@
 import React from 'react';
 import useProductVM from './ProductVM';
 import { mockProducts } from '../../mockapi/mockProducts';
+import { mockReviews } from '../../mockapi/mockReviews';
 import Carousel from '../../components/Product/Carousel';
+import Accordion from '../../components/Product/Accordion';
 
 function Product() {
     const productData = mockProducts[0];
@@ -10,7 +12,7 @@ function Product() {
             <div className="w-full flex gap-4">
                 <img src={productData.images[0].large} className="w-[40%] h-[40%]" alt="" />
                 <div className="w-[50%]">
-                    <div className="bg-black mb-2 font-bold px-5 py-2 rounded-sm text-white-light w-fit">GYM</div>
+                    <div className="bg-black mb-2 font-bold px-5 py-2 rounded-sm text-white-light w-fit">{productData.main_category}</div>
                     <h1 className="font-extrabold text-2xl">{productData.title}</h1>
                     <h3 className="font-extrabold text-xl text-red-600 mb-3">{productData.price} $</h3>
                     <h3 className="font-bold mb-2 text-lg">A propos de cet article</h3>
@@ -22,6 +24,9 @@ function Product() {
                 <Carousel products={mockProducts} />
             </div>
             <h2 className="text-3xl font-extrabold my-4">Avis client</h2>
+            <div>
+                <Accordion reviews={mockReviews} />
+            </div>
         </div>
     );
 }
