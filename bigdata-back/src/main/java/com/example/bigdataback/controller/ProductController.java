@@ -1,13 +1,13 @@
 package com.example.bigdataback.controller;
 
+import com.example.bigdataback.dto.ErrorResponse;
 import com.example.bigdataback.dto.UserRequest;
-import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.parser.QueryParser;
 import com.example.bigdataback.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
-import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,10 +21,19 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    public ResponseEntity<Page<Product>> processingUserRequest(@RequestBody UserRequest userRequest) {
+    public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
         log.info("Received user request.......... {}", userRequest.getRequest());
         Document query = QueryParser.parseQuery(userRequest.getRequest());
         log.info("Parsed query.........{}", query.toJson());
-        return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
+        if (query.isEmpty() && !userRequest.getRequest().isEmpty()) {
+            return ResponseEntity.badRequest().body(
+                    ErrorResponse.builder()
+                            .code(HttpStatus.BAD_REQUEST.value())
+                            .message("The request you provided is invalid")
+                            .build()
+            );
+        } else {
+            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
+        }
     }
 }
