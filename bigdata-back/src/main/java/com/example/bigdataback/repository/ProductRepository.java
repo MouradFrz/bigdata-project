@@ -1,6 +1,7 @@
 package com.example.bigdataback.repository;
 
 import com.example.bigdataback.entity.Product;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -13,5 +14,5 @@ import java.util.List;
 public interface ProductRepository extends MongoRepository<Product, ObjectId> {
 
     @Query("?0")
-    List<Product> findByParsedQuery(String query, Pageable pageable);
+    List<Product> findByParsedQuery(Document query, Pageable pageable);
 }

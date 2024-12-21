@@ -5,6 +5,7 @@ import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -21,7 +22,7 @@ public class ProductService {
     private final MongoTemplate mongoTemplate;
     private final ProductRepository productRepository;
 
-    public Page<Product> findByParsedQuery(UserRequest userRequest, String query) {
+    public Page<Product> findByParsedQuery(UserRequest userRequest, Document query) {
         PageRequest pageRequest = PageRequest.of(userRequest.getPage(), userRequest.getSize());
         List<Product> products = this.productRepository.findByParsedQuery(query, pageRequest);
         return new PageImpl<>(products, pageRequest, products.size());
