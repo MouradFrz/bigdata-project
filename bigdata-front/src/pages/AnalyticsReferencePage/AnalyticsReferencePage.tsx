@@ -1,6 +1,8 @@
 import React from 'react';
 import { AVAILABLE_METRICS } from './availableMetrics';
+import { useNavigate } from 'react-router-dom';
 function AnalyticsReferencePage() {
+    const navigate = useNavigate();
     return (
         <div>
             <h1 className="font-extrabold text-3xl mb-4">Metriques disponibles</h1>
@@ -9,8 +11,9 @@ function AnalyticsReferencePage() {
                     return (
                         <div
                             onClick={() => {
-                                console.log('goto page');
+                                navigate(`/metric/${metric.id}`);
                             }}
+                            key={metric.id}
                             className="cursor-pointer w-[33%] bg-white shadow-[4px_6px_10px_-3px_#bfc9d4] rounded border border-white-light dark:border-[#1b2e4b] dark:bg-[#191e3a] dark:shadow-none hover:bg-white-light"
                         >
                             <div className="py-7 px-6">

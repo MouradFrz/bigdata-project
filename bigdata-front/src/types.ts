@@ -40,3 +40,11 @@ export interface Review {
     helpful_vote: number;
     verified_purchase: boolean;
 }
+
+export interface MetricSchema {
+    type: string;
+    dataUrl: string;
+    id: number;
+    title: string;
+    description: string;
+}

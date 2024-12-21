@@ -1,10 +1,6 @@
-export const AVAILABLE_METRICS: {
-    type: string;
-    dataUrl: string;
-    id: number;
-    title: string;
-    description: string;
-}[] = [
+import { MetricSchema } from '../../types';
+
+export const AVAILABLE_METRICS: MetricSchema[] = [
     {
         type: 'cpu_usage',
         dataUrl: '/api/metrics/cpu',
