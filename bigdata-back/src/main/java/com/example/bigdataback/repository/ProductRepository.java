@@ -17,18 +17,6 @@ public interface ProductRepository extends MongoRepository<Product, ObjectId> {
     @Query("?0")
     List<Product> findByParsedQuery(Document query, Pageable pageable);
 
-    List<Product> findByParsedQuery(String query, Pageable pageable);
-
-
-    // Recherche par catégorie et gamme de prix
-    @Query("{ 'main_category': ?0, 'parent_asin': { $ne: ?1 }, 'price': { $gte: ?2, $lte: ?3 } }")
-    List<Product> findByMainCategoryAndPriceRange(
-            String mainCategory,
-            String excludeParentAsin,
-            Double minPrice,
-            Double maxPrice
-    );
-
     @Query("{ 'main_category': ?0, 'parent_asin': { $ne: ?1 } }")
     List<Product> findByMainCategoryAndNotParentAsin(
             String mainCategory,
