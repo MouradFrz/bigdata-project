@@ -5,6 +5,7 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/amazon_reviews
       database: amazon_reviews
+      auto-index-creation: true
 
 logging:
   level:
