@@ -25,4 +25,7 @@ public interface ProductRepository extends MongoRepository<Product, ObjectId> {
 
     @Query("{average_rating:  {$gte: ?0}}")
     List<Product> findProductsWithRatingGreaterThan(Double minRating, PageRequest pageRequest);
+
+
+
 }
