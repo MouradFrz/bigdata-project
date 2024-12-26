@@ -13,5 +13,4 @@ public interface ReviewRepository extends MongoRepository<Review, String> {
 
     List<Review> findByParentAsinIn(List<String> parentAsins);
 
-
 }

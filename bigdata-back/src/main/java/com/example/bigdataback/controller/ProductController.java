@@ -1,6 +1,8 @@
 package com.example.bigdataback.controller;
 
+
 import com.example.bigdataback.dto.ErrorResponse;
+import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.parser.QueryParser;
@@ -14,10 +16,11 @@ import org.bson.Document;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.List;
+
 
 @RestController
 @RequestMapping(value = "/products")
@@ -48,6 +51,7 @@ public class ProductController {
             return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
         }
     }
+
 
     @GetMapping("/{parentAsin}")
     public ResponseEntity<?> getProductDetails(
@@ -111,6 +115,19 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    /*
+        This end point return the top 10 rated products in a categorie.Each product must have more than 60000 review to be considered in the rating.
+        Graph type: Histograme
+
+        Each bar will represent a product,the height will be based on the rating number and on the average_rating
+     */
+    @GetMapping("/top-rated")
+    public ResponseEntity<List<ProductSummary>> getTopRatedProducts() {
+        return ResponseEntity.ok(productService.getTopRatedProducts());
+    }
+
+
 
 
 }
