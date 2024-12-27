@@ -11,5 +11,4 @@ public class BigdataBackApplication {
     public static void main(String[] args) {
         SpringApplication.run(BigdataBackApplication.class, args);
     }
-
 }

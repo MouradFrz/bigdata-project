@@ -5,23 +5,21 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/amazon_reviews
       database: amazon_reviews
-      auto-index-creation: true
-
-logging:
-  level:
-    org:
-      springframework:
-        data:
-          mongodb:
-            core:
-              MongoTemplate: DEBUG
-            repository:
-              Query: DEBUG
-    com:
-      example:
-        bigdataback: DEBUG
 
 server:
   port: 9999
   servlet:
     context-path: /api/v1
+# Configuration des logs
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.apache.spark: DEBUG
+    org.spark-project: DEBUG
+    org.apache.hadoop: INFO
+    org.mongodb.driver: INFO
+    com.example.bigdataback: DEBUG
+
+# Add these to get more detailed logging
+logging.config: classpath:logback-spring.xml

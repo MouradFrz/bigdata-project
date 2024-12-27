@@ -7,11 +7,9 @@ import com.example.bigdataback.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,12 +49,16 @@ public class ProductDetailService {
     private List<Product> getRecommendationsByCategory(Product product, Integer maxRecommendations) {
         String category = product.getMainCategory().toLowerCase();
 
-        return switch (category) {
-            case "books" -> bookRecommendationService.getBookRecommendations(product, maxRecommendations); //not functional
-            case "toys & games" -> toysGamesRecommendationService.getRecommendations(product.getParentAsin(), maxRecommendations);
-            case "movies & tv" -> bookRecommendationService.getBookRecommendations(product, maxRecommendations); //not functional
-            default -> bookRecommendationService.getBookRecommendations(product, maxRecommendations);
-        };
+        switch (category) {
+            case "books":
+                return bookRecommendationService.getBookRecommendations(product, maxRecommendations);
+            case "toys & games":
+                return toysGamesRecommendationService.getRecommendations(product.getParentAsin(), maxRecommendations);
+            case "movies & tv":
+                return bookRecommendationService.getBookRecommendations(product, maxRecommendations);
+            default:
+                return bookRecommendationService.getBookRecommendations(product, maxRecommendations);
+        }
     }
 
 
