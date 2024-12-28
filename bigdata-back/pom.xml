@@ -45,6 +45,16 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- JUnit 5 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot Test Starter -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
@@ -79,6 +89,7 @@
                     <artifactId>junit-vintage-engine</artifactId>
                 </exclusion>
             </exclusions>
+
         </dependency>
 
         <!-- Spark Core -->
@@ -132,12 +143,56 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core -->
+
+
+
+        <!-- Spark Core -->
+
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.13</artifactId>
+            <artifactId>spark-core_2.12</artifactId>
             <version>3.5.3</version>
         </dependency>
 
+        <!-- Spark SQL -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.12</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+
+        <!-- MongoDB Spark Connector -->
+        <dependency>
+            <groupId>org.mongodb.spark</groupId>
+            <artifactId>mongo-spark-connector_2.12</artifactId>
+            <version>10.4.0</version>
+        </dependency>
+
+        <!-- Jakarta Servlet API -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>5.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>4.0.1</version>
+            <!-- Usually "provided" scope in a war/Servlet container scenario,
+                 but you may need compile scope if you're using an embedded container. -->
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mllib_2.12</artifactId>
+            <version>3.5.3</version> <!-- Use the version of Spark you're using -->
+        </dependency>
+        <dependency>
+            <groupId>com.johnsnowlabs.nlp</groupId>
+            <artifactId>spark-nlp_2.12</artifactId>
+            <version>5.4.2</version>
+        </dependency>
     </dependencies>
 
 
@@ -166,4 +221,6 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
+
