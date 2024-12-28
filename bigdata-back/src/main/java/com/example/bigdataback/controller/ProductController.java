@@ -52,13 +52,11 @@ public class ProductController {
     @GetMapping("/{parentAsin}")
     public ResponseEntity<Map<String, Object>> getProductDetails(
             @PathVariable String parentAsin,
-            @RequestParam(required = false, defaultValue = "false") Boolean verifiedOnly,
-            @RequestParam(required = false, defaultValue = "5") Integer maxRecommendations) {
+            @RequestParam(required = false, defaultValue = "false") Boolean verifiedOnly) {
 
-        Map<String, Object> response = productDetailService.getProductDetailsWithRecommendations(
+        Map<String, Object> response = productDetailService.getProductDetailsWithReviews(
                 parentAsin,
-                verifiedOnly,
-                maxRecommendations
+                verifiedOnly
         );
 
         return ResponseEntity.ok(response);
@@ -82,11 +80,13 @@ public class ProductController {
 
             return ResponseEntity.ok(response);
          } catch (Exception e) {
-            log.error("Error in spark recommendations: ", e); // Changed to include full stacktrace
+            log.error("Error in spark recommendations: ", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
             errorResponse.put("stackTrace", ExceptionUtils.getStackTrace(e));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+
 }

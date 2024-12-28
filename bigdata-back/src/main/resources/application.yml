@@ -5,6 +5,8 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/amazon_reviews
       database: amazon_reviews
+  jvm:
+    args: -Xmx4g -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=./
 
 server:
   port: 9999
@@ -21,5 +23,30 @@ logging:
     org.mongodb.driver: INFO
     com.example.bigdataback: DEBUG
 
+# Spark Configuration
+spark:
+  config:
+    driver:
+      memory: 6g
+      maxResultSize: 4g
+    executor:
+      memory: 4g
+    sql:
+      shuffle:
+        partitions: 10
+      files:
+        maxPartitionBytes: 128m
+      adaptive:
+        enabled: true
+      broadcastTimeout: 1200
+    shuffle:
+      file:
+        buffer: 1m
+    memory:
+      fraction: 0.7
+      storageFraction: 0.3
+    default:
+      parallelism: 4
 # Add these to get more detailed logging
 logging.config: classpath:logback-spring.xml
+

@@ -38,4 +38,6 @@ public class Product {
 
     @Field("bought_together")
     private Object boughtTogether;
+    @Field("final_score")
+    private Double finalScore;
 }
