@@ -1,5 +1,6 @@
 package com.example.bigdataback.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -28,6 +29,7 @@ public class Product {
     private List<String> description;
     private Double price;
     private List<ProductImage> images;
+    @JsonIgnore
     private List<ProductVideo> videos;
     private String store;
     private List<String> categories;

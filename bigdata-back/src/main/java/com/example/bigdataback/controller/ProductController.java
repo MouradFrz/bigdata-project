@@ -49,18 +49,18 @@ public class ProductController {
         }
     }
 
-    @GetMapping("/{parentAsin}")
-    public ResponseEntity<Map<String, Object>> getProductDetails(
-            @PathVariable String parentAsin,
-            @RequestParam(required = false, defaultValue = "false") Boolean verifiedOnly) {
-
-        Map<String, Object> response = productDetailService.getProductDetailsWithReviews(
-                parentAsin,
-                verifiedOnly
-        );
-
-        return ResponseEntity.ok(response);
-    }
+//    @GetMapping("/{parentAsin}")
+//    public ResponseEntity<Map<String, Object>> getProductDetails(
+//            @PathVariable String parentAsin,
+//            @RequestParam(required = false, defaultValue = "false") Boolean verifiedOnly) {
+//
+//        Map<String, Object> response = productDetailService.getProductDetailsWithReviews(
+//                parentAsin,
+//                verifiedOnly
+//        );
+//
+//        return ResponseEntity.ok(response);
+//    }
 
     @GetMapping("/{parentAsin}/spark-recommendations")
     public ResponseEntity<?> getSparkRecommendations(

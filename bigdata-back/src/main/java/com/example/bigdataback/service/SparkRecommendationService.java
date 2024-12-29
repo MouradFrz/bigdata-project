@@ -1,7 +1,7 @@
 package com.example.bigdataback.service;
 
 import com.example.bigdataback.entity.Product;
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.*;
