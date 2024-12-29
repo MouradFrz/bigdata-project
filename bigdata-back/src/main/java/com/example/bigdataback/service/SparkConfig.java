@@ -1,6 +1,5 @@
 package com.example.bigdataback.service;
 
-import jakarta.annotation.PreDestroy;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
 
+import javax.annotation.PreDestroy;
 
 @Configuration
 public class SparkConfig {
@@ -31,44 +31,41 @@ public class SparkConfig {
             sparkSession = SparkSession.builder()
                     .appName("AmazonRecommendations")
                     .master("local[*]")
-                    // Configuration MongoDB
+                    // MongoDB Configuration
                     .config("spark.mongodb.input.uri", "mongodb://localhost:27017")
                     .config("spark.mongodb.output.uri", "mongodb://localhost:27017")
                     .config("spark.mongodb.database", "amazon_reviews")
-                    .config("spark.mongodb.input.partitioner", "MongoSinglePartitioner")
-                    // Configuration de base
+                    .config("spark.mongodb.input.partitioner", "MongoPaginateBySizePartitioner")
+                    .config("spark.mongodb.input.partition.size", "64")
+                    .config("spark.mongodb.input.max_batch_size", "1024")
+                    .config("spark.mongodb.socket.timeout", "120000")
+                    .config("spark.mongodb.operation.timeout", "120000")
+                    .config("spark.ui.enabled", "false")
+                    // Network Configuration
                     .config("spark.driver.host", "localhost")
                     .config("spark.driver.bindAddress", "localhost")
-                    .config("spark.ui.enabled", "false")
-                    // Configuration mémoire
+                    .config("spark.driver.port", "0")
+                    .config("spark.blockManager.port", "0")
+                    .config("spark.rpc.message.maxSize", "1024")
+                    // Memory Configuration
                     .config("spark.driver.memory", driverMemory)
                     .config("spark.executor.memory", executorMemory)
-                    .config("spark.driver.maxResultSize", "4g")
-                    .config("spark.memory.fraction", "0.7")
+                    .config("spark.driver.maxResultSize", "6g")
+                    .config("spark.memory.fraction", "0.8")
                     .config("spark.memory.storageFraction", "0.3")
-                    // Configurations mémoire optimisées
-                    .config("spark.driver.memory", driverMemory)
-                    .config("spark.executor.memory", executorMemory)
-                    .config("spark.driver.maxResultSize", "6g")  // Augmenté
-                    .config("spark.memory.fraction", "0.8")      // Augmenté
-                    .config("spark.memory.storageFraction", "0.3")
-                    .config("spark.shuffle.memoryFraction", "0.4") // Ajouté
-                    .config("spark.storage.memoryFraction", "0.4") // Ajouté
-                    // Configurations performance optimisées
-                    .config("spark.default.parallelism", "8")    // Augmenté
-                    .config("spark.sql.shuffle.partitions", "20") // Augmenté
+                    // Performance Configuration
+                    .config("spark.default.parallelism", "8")
+                    .config("spark.sql.shuffle.partitions", "20")
                     .config("spark.sql.adaptive.enabled", "true")
-                    .config("spark.sql.adaptive.shuffle.targetPostShuffleInputSize", "128mb") // Augmenté
                     .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
-                    .config("spark.sql.files.maxPartitionBytes", "256mb") // Augmenté
-                    .config("spark.sql.inMemoryColumnarStorage.compressed", "true")
-                    .config("spark.sql.inMemoryColumnarStorage.batchSize", "5000") // Réduit
-                    .config("spark.sql.broadcastTimeout", "1800") // Augmenté
-                    .config("spark.network.timeout", "1200")      // Augmenté
-                    // Nouvelles configurations pour la gestion de la mémoire
+                    .config("spark.network.timeout", "1200")
+                    .config("spark.rpc.askTimeout", "600s")
+                    .config("spark.rpc.lookupTimeout", "600s")
+                    .config("spark.executor.heartbeatInterval", "20s")
+                    .config("spark.network.timeoutInterval", "120s")
+                    .config("spark.storage.blockManagerHeartbeatTimeoutMs", "120000")
+                    .config("spark.scheduler.mode", "FAIR")
                     .config("spark.cleaner.periodicGC.interval", "15min")
-                    .config("spark.cleaner.referenceTracking.cleanCheckpoints", "true")
-                    .config("spark.speculation", "false")
                     .config("spark.rdd.compress", "true")
                     .getOrCreate();
 
