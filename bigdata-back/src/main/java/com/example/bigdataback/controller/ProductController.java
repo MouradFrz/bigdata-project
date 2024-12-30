@@ -50,16 +50,40 @@ public class ProductController {
     }
 
     @GetMapping("/{parentAsin}")
-    public ResponseEntity<Map<String, Object>> getProductDetails(
+    public ResponseEntity<?> getProductDetails(
             @PathVariable String parentAsin,
             @RequestParam(required = false, defaultValue = "false") Boolean verifiedOnly) {
-
-        Map<String, Object> response = productDetailService.getProductDetailsWithReviews(
-                parentAsin,
-                verifiedOnly
-        );
-
-        return ResponseEntity.ok(response);
+        try {
+            Map<String, Object> response = productDetailService.getProductDetailsWithReviews(
+                    parentAsin,
+                    verifiedOnly
+            );
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            String errorMessage = e.getMessage();
+            if (errorMessage.startsWith("PRODUCT_NOT_FOUND:")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        ErrorResponse.builder()
+                                .code(HttpStatus.NOT_FOUND.value())
+                                .message("Le produit n'existe pas")
+                                .build()
+                );
+            } else if (errorMessage.startsWith("NO_REVIEWS_FOUND:")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        ErrorResponse.builder()
+                                .code(HttpStatus.NOT_FOUND.value())
+                                .message("Le produit existe mais n'a pas de reviews")
+                                .build()
+                );
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                        ErrorResponse.builder()
+                                .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                                .message("Erreur technique lors de la récupération des détails du produit")
+                                .build()
+                );
+            }
+        }
     }
 
     @GetMapping("/{parentAsin}/spark-recommendations")

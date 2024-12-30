@@ -11,8 +11,6 @@ import org.apache.spark.sql.SparkSession;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.apache.spark.sql.functions.*;
@@ -26,23 +24,25 @@ public class ProductDetailService {
 
     public Map<String, Object> getProductDetailsWithReviews(String parentAsin, Boolean verifiedOnly) {
         try {
-            // 1. Récupérer les métadonnées du produit en parallèle
-            CompletableFuture<Product> productFuture = CompletableFuture.supplyAsync(() ->
-                    productRepository.findByParentAsin(parentAsin)
-                            .orElseThrow(() -> new RuntimeException("Product not found"))
-            );
+            // 1. Vérifier d'abord si le produit existe
+            Product product = productRepository.findByParentAsin(parentAsin)
+                    .orElseThrow(() -> new RuntimeException("PRODUCT_NOT_FOUND: " + parentAsin));
 
             // 2. Récupérer les reviews avec Spark + MongoDB
             Dataset<Row> reviewsDF = spark.read()
                     .format("mongodb")
                     .option("uri", "mongodb://localhost:27017")
                     .option("database", "amazon_reviews")
-                    .option("collection", "reviews")  // Utiliser la collection reviews
+                    .option("collection", "reviews")
                     .load()
                     .filter(col("parent_asin").equalTo(parentAsin));
 
             if (verifiedOnly) {
                 reviewsDF = reviewsDF.filter(col("verified_purchase").equalTo(true));
+            }
+
+            if (reviewsDF.isEmpty()) {
+                throw new RuntimeException("NO_REVIEWS_FOUND: " + parentAsin);
             }
 
             // 3. Calculer les statistiques
@@ -72,7 +72,7 @@ public class ProductDetailService {
 
             // 6. Construire la réponse finale
             Map<String, Object> response = new HashMap<>();
-            response.put("product", productFuture.get(5, TimeUnit.SECONDS));
+            response.put("product", product);
             response.put("reviews", reviews);
             response.put("stats", stats);
 
@@ -80,7 +80,7 @@ public class ProductDetailService {
 
         } catch (Exception e) {
             log.error("Error getting product details for asin {}: {}", parentAsin, e.getMessage());
-            throw new RuntimeException("Failed to get product details", e);
+            throw e;
         }
     }
 
