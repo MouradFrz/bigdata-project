@@ -43,12 +43,15 @@ export interface Review {
     verified_purchase: boolean;
 }
 
+export enum METRIC_TYPES {
+    HISTOGRAMME,
+}
+
 export interface MetricSchema {
-    type: string;
-    dataUrl: string;
     id: number;
     title: string;
     description: string;
+    component: (data: { data: MetricSchema }) => JSX.Element;
 }
 
 export interface ProductDetailsWithReviewsResponse {

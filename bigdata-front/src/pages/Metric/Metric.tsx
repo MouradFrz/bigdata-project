@@ -18,7 +18,7 @@ function Metric() {
         return <>The metric you are trying to access is non existant</>;
     }
     if (metricData === null) return <div>Something went wrong</div>;
-    return <>{metricData.title}</>;
+    return <metricData.component data={metricData} />;
 }
 
 export default Metric;
