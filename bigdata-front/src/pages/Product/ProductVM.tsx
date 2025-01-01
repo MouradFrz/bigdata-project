@@ -1,16 +1,23 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { ProductDetailsWithReviewsResponse } from '../../types';
+import { Product, ProductDetailsWithReviewsResponse } from '../../types';
 
-import { useGetProductDetailsQuery } from '../../store/services/product';
+import { useGetProductDetailsQuery, useGetProductRecommendationsQuery } from '../../store/services/product';
 import { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { SerializedError } from '@reduxjs/toolkit';
+interface ProductVMReturn {
+    productWithReviews: ProductDetailsWithReviewsResponse;
+    error: FetchBaseQueryError | SerializedError | undefined | null;
+    recommendations?: { recommendations: Product[] };
+    recommendationsError: FetchBaseQueryError | SerializedError | undefined | null;
+}
 
-function useProductVM(): { productWithReviews: ProductDetailsWithReviewsResponse; isLoading: boolean; error: FetchBaseQueryError | SerializedError | undefined | null } {
+function useProductVM(): ProductVMReturn {
     const { id: productId } = useParams();
-    const { data, error, isLoading } = useGetProductDetailsQuery(productId ?? '');
+    const { data: productWithReviews, error } = useGetProductDetailsQuery(productId ?? '');
+    const { data: recommendations, error: recommendationsError } = useGetProductRecommendationsQuery(productId ?? '');
 
-    return { productWithReviews: data, error, isLoading };
+    return { productWithReviews, error, recommendations, recommendationsError };
 }
 
 export default useProductVM;

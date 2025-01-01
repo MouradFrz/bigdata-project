@@ -38,18 +38,18 @@ function Carousel({ products }: { products: Product[] }) {
                 >
                     {products.map((product) => {
                         return (
-                            <SwiperSlide key={product.parent_asin}>
+                            <SwiperSlide key={product.parentAsin}>
                                 <ProductCard product={product} />
                             </SwiperSlide>
                         );
                     })}
                 </Swiper>
             </div>
-            <button className="swiper-button-prev-ex5 grid place-content-center ltr:left-2 rtl:right-2 p-1 transition text-primary hover:text-white border border-primary  hover:border-primary hover:bg-primary rounded-full absolute z-[999] top-[44%] -translate-y-1/2">
-                Less
+            <button className="swiper-button-prev-ex5 grid place-content-center ltr:left-2 rtl:right-2 p-1 transition text-white border border-primary  hover:border-primary bg-primary  rounded-full absolute z-[999] top-[44%] aspect-square w-8 -translate-y-1/2">
+                &lt;
             </button>
-            <button className="swiper-button-next-ex5 grid place-content-center ltr:right-2 rtl:left-2 p-1 transition text-primary hover:text-white border border-primary  hover:border-primary hover:bg-primary rounded-full absolute z-[999] top-[44%] -translate-y-1/2">
-                More
+            <button className="swiper-button-next-ex5 grid place-content-center ltr:right-2 rtl:left-2 p-1 transition text-white border border-primary  hover:border-primary bg-primary rounded-full absolute z-[999] top-[44%] aspect-square w-8 -translate-y-1/2">
+                &gt;
             </button>
         </div>
     );

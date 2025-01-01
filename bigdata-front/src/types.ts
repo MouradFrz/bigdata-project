@@ -6,12 +6,14 @@ export interface Product {
     features: string[];
     description: string[];
     price: number | null;
-    images: {
-        thumb: string;
-        large: string;
-        variant: string;
-        hi_res: string | null;
-    }[];
+    images:
+        | {
+              thumb: string;
+              large: string;
+              variant: string;
+              hi_res: string | null;
+          }[]
+        | null;
     videos: [];
     store: string;
     categories: string[];

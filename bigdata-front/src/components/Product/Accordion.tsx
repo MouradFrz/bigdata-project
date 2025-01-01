@@ -5,7 +5,7 @@ import { Review } from '../../types';
 import { displayStars } from '../Index/ProductCard';
 import Checkmark from '../../../public/checkmark.svg';
 function Accordion({ reviews }: { reviews: Review[] }) {
-    const [active1, setActive1] = useState<string>('1');
+    const [active1, setActive1] = useState<string>('0');
     const togglePara1 = (value: string) => {
         setActive1((oldValue) => {
             return oldValue === value ? '' : value;
@@ -15,7 +15,7 @@ function Accordion({ reviews }: { reviews: Review[] }) {
         <div className="mb-5">
             {reviews.map((review, index) => {
                 return (
-                    <div className="border border-[#d3d3d3] dark:border-[#3b3f5c] rounded font-semibold">
+                    <div key={index} className="border border-[#d3d3d3] dark:border-[#3b3f5c] rounded font-semibold">
                         <div className="border-b h-min border-[#d3d3d3] dark:border-[#3b3f5c]">
                             <button type="button" className={` p-4 w-full flex items-center text-dark dark:text-dark-light`} onClick={() => togglePara1(String(index))}>
                                 <div className="flex justify-between w-full">

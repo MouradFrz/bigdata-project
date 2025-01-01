@@ -15,7 +15,10 @@ export const productApi = createApi({
         getProductDetails: builder.query<any, string>({
             query: (parentAsin) => `/${parentAsin}`,
         }),
+        getProductRecommendations: builder.query<{ recommendations: Product[] }, string>({
+            query: (parentAsin) => `/${parentAsin}/spark-recommendations`,
+        }),
     }),
 });
 
-export const { useGetProductDetailsQuery, useGetFilteredProductsMutation } = productApi;
+export const { useGetProductDetailsQuery, useGetFilteredProductsMutation, useGetProductRecommendationsQuery } = productApi;
