@@ -1,8 +1,8 @@
 export interface Product {
-    main_category: string;
+    mainCategory: string;
     title: string;
     averageRating: number;
-    rating_number: number;
+    ratingNumber: number;
     features: string[];
     description: string[];
     price: number | null;
@@ -16,8 +16,8 @@ export interface Product {
     store: string;
     categories: string[];
     details: object;
-    parent_asin: string;
-    bought_together: string | null;
+    parentAsin: string;
+    boughtTogether: string | null;
 }
 
 export interface PaginatedSearchResponse {
@@ -47,4 +47,9 @@ export interface MetricSchema {
     id: number;
     title: string;
     description: string;
+}
+
+export interface ProductDetailsWithReviewsResponse {
+    product: Product;
+    reviews: Review[];
 }

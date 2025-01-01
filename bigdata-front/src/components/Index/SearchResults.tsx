@@ -4,7 +4,7 @@ function SearchResults({ products }: { products: Product[] }) {
     return (
         <div>
             {products?.map((product) => (
-                <ProductCard product={product} />
+                <ProductCard product={product} key={product.parentAsin} />
             ))}
         </div>
     );

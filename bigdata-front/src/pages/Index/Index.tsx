@@ -5,7 +5,7 @@ import Loader from '../../components/Loader';
 import useIndexVM from './indexVM';
 const Index = () => {
     const { incrementCurrentPage, decrementCurrentPage, loading, error, displayedProducts, currentPage, searchKeyword, setSearchKeyword } = useIndexVM();
-    if (error && error?.status === 400)
+    if (error && 'status' in error && error.status === 400)
         return (
             <div className="container">
                 <SearchBar searchKeyword={searchKeyword} setSearchKeyword={setSearchKeyword} />

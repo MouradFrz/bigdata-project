@@ -49,7 +49,7 @@ export const displayStars = (rating: number) => {
 function ProductCard({ product }: { product: Product }) {
     const navigate = useNavigate();
     return (
-        <div className="mb-5 w-full justify-center">
+        <div className="mb-5 w-full justify-center" key={product.parentAsin}>
             <div className="w-full bg-white shadow-[4px_6px_10px_-3px_#bfc9d4] rounded border border-white-light dark:border-[#1b2e4b] dark:bg-[#191e3a] dark:shadow-none">
                 <div className="p-5 flex  flex-row ">
                     <div className=" w-40 h-40 overflow-hidden">
@@ -63,7 +63,7 @@ function ProductCard({ product }: { product: Product }) {
                         <div className="flex justify-between mt-8 align-bottom">
                             <div className="flex justify-between items-center gap-5">
                                 <p className="text-3xl text-red-600 font-extrabold">{product.price ? product.price + ' $' : 'Price unavailable'} </p>
-                                <p className="text-blue-600">{product.main_category}</p>
+                                <p className="text-blue-600">{product.mainCategory}</p>
                             </div>
                             <div className="flex justify-between items-center gap-5 ">
                                 <div className="flex">
@@ -73,7 +73,7 @@ function ProductCard({ product }: { product: Product }) {
                                 <button
                                     className=" btn btn-sm btn-primary"
                                     onClick={() => {
-                                        navigate(`/product/${product.parent_asin}`);
+                                        navigate(`/product/${product.parentAsin}`);
                                     }}
                                 >
                                     View Product

@@ -4,7 +4,7 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 
 function useFetch<T>(url: string, method: string, body?: object, deps?: any[]) {
     const [data, setData] = useState<T | null>(null);
-    const [loading, setLoading] = useState<boolean | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<AxiosError | null>(null);
 
     useEffect(() => {
@@ -41,7 +41,7 @@ function useFetch<T>(url: string, method: string, body?: object, deps?: any[]) {
             });
     }, [...(deps ?? [])]);
 
-    return { data, loading, error };
+    return { data, loading: loading as boolean, error };
 }
 
 export default useFetch;
