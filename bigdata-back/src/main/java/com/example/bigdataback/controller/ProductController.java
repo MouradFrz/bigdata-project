@@ -1,10 +1,10 @@
 package com.example.bigdataback.controller;
 
-
 import com.example.bigdataback.dto.ErrorResponse;
 import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.entity.Product;
+import com.example.bigdataback.ollama.OllamaService;
 import com.example.bigdataback.parser.QueryParser;
 import com.example.bigdataback.service.ProductDetailService;
 import com.example.bigdataback.service.ProductService;
@@ -16,10 +16,10 @@ import org.bson.Document;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.List;
 
 
 @RestController
@@ -35,8 +35,11 @@ public class ProductController {
 
     private final SparkRecommendationService sparkRecommendationService;
 
+    private final OllamaService ollamaService;
+
     @PostMapping
     public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
+        userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
         log.info("Received user request.......... {}", userRequest.getRequest());
         Document query = QueryParser.parseQuery(userRequest.getRequest());
         log.info("Parsed query.........{}", query.toJson());
@@ -107,7 +110,7 @@ public class ProductController {
             response.put("executionTime", endTime - startTime);
 
             return ResponseEntity.ok(response);
-         } catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error in spark recommendations: ", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
@@ -126,8 +129,4 @@ public class ProductController {
     public ResponseEntity<List<ProductSummary>> getTopRatedProducts() {
         return ResponseEntity.ok(productService.getTopRatedProducts());
     }
-
-
-
-
 }

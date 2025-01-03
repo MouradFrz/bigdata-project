@@ -14,8 +14,11 @@ import java.util.regex.Pattern;
 public class QueryParser {
 
     public static Document parseQuery(String input) {
-        input = input.replaceAll("[\\'?@:!]+", "");
+        input = input.replaceAll("['\"?@:!]+", "");
 
+        input = input.replaceAll(",", ".");
+        input = input.toLowerCase();
+        input = input.substring(1, input.length() - 1);
         log.info("Parsing query: {}", input);
         List<Document> orConditionsList = new ArrayList<>();
 
@@ -83,7 +86,7 @@ public class QueryParser {
 
         if (storeMatcher.find()) {
             String store = storeMatcher.group(2).trim();
-            return new Document("store", store);
+            return new Document("store", new Document("$regex", store).append("$options", "i"));
         }
 
         if (keywordMatcher.find()) {
