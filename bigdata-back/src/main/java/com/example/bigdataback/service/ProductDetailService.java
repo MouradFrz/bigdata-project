@@ -10,7 +10,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.apache.spark.sql.functions.*;
@@ -23,10 +27,13 @@ public class ProductDetailService {
     private final ProductRepository productRepository;
 
     public Map<String, Object> getProductDetailsWithReviews(String parentAsin, Boolean verifiedOnly) {
+        Map<String, Object> response = new HashMap<>();
+
         try {
             // 1. Vérifier d'abord si le produit existe
             Product product = productRepository.findByParentAsin(parentAsin)
                     .orElseThrow(() -> new RuntimeException("PRODUCT_NOT_FOUND: " + parentAsin));
+
 
             // 2. Récupérer les reviews avec Spark + MongoDB
             Dataset<Row> reviewsDF = spark.read()
@@ -34,44 +41,48 @@ public class ProductDetailService {
                     .option("uri", "mongodb://localhost:27017")
                     .option("database", "amazon_reviews")
                     .option("collection", "reviews")
-                    .load()
-                    .filter(col("parent_asin").equalTo(parentAsin));
+                    .load();
+            log.info("REVIEWS found: {}", reviewsDF.collectAsList());
 
-            if (verifiedOnly) {
-                reviewsDF = reviewsDF.filter(col("verified_purchase").equalTo(true));
+            List<Review> reviews = new ArrayList<>();
+            Map<String, Object> stats = new HashMap<>();
+
+            // veifier si les reviews existe dans la collection reviews
+            if (!reviewsDF.isEmpty()) {
+                reviewsDF.filter(col("parent_asin").equalTo(parentAsin));
+
+
+                if (verifiedOnly) {
+                    reviewsDF = reviewsDF.filter(col("verified_purchase").equalTo(true));
+                }
+
+                // 3. Calculer les statistiques
+                Dataset<Row> statsDF = reviewsDF.agg(
+                        count("*").as("total_reviews"),
+                        avg("rating").as("average_rating"),
+                        sum(when(col("verified_purchase").equalTo(true), 1).otherwise(0))
+                                .as("verified_reviews")
+                );
+
+                // 4. Récupérer les 50 reviews les plus récentes
+                reviews = reviewsDF
+                        .orderBy(col("timestamp").desc())
+                        .limit(50)
+                        .collectAsList()
+                        .stream()
+                        .map(this::convertRowToReview)
+                        .collect(Collectors.toList());
+
+                // 5. Récupérer les stats
+                Row statsRow = statsDF.first();
+                stats = Map.of(
+                        "totalReviews", statsRow.getLong(0),
+                        "averageRating", statsRow.getDouble(1),
+                        "verifiedReviews", statsRow.getLong(2)
+                );
             }
-
-            if (reviewsDF.isEmpty()) {
-                throw new RuntimeException("NO_REVIEWS_FOUND: " + parentAsin);
-            }
-
-            // 3. Calculer les statistiques
-            Dataset<Row> statsDF = reviewsDF.agg(
-                    count("*").as("total_reviews"),
-                    avg("rating").as("average_rating"),
-                    sum(when(col("verified_purchase").equalTo(true), 1).otherwise(0))
-                            .as("verified_reviews")
-            );
-
-            // 4. Récupérer les 50 reviews les plus récentes
-            List<Review> reviews = reviewsDF
-                    .orderBy(col("timestamp").desc())
-                    .limit(50)
-                    .collectAsList()
-                    .stream()
-                    .map(this::convertRowToReview)
-                    .collect(Collectors.toList());
-
-            // 5. Récupérer les stats
-            Row statsRow = statsDF.first();
-            Map<String, Object> stats = Map.of(
-                    "totalReviews", statsRow.getLong(0),
-                    "averageRating", statsRow.getDouble(1),
-                    "verifiedReviews", statsRow.getLong(2)
-            );
 
             // 6. Construire la réponse finale
-            Map<String, Object> response = new HashMap<>();
             response.put("product", product);
             response.put("reviews", reviews);
             response.put("stats", stats);

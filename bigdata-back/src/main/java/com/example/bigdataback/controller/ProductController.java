@@ -1,6 +1,5 @@
 package com.example.bigdataback.controller;
 
-
 import com.example.bigdataback.dto.ErrorResponse;
 import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.UserRequest;
@@ -16,11 +15,10 @@ import org.bson.Document;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.List;
-
 
 @RestController
 @RequestMapping(value = "/products")
@@ -72,13 +70,6 @@ public class ProductController {
                                 .message("Le produit n'existe pas")
                                 .build()
                 );
-            } else if (errorMessage.startsWith("NO_REVIEWS_FOUND:")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        ErrorResponse.builder()
-                                .code(HttpStatus.NOT_FOUND.value())
-                                .message("Le produit existe mais n'a pas de reviews")
-                                .build()
-                );
             } else {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                         ErrorResponse.builder()
@@ -107,7 +98,7 @@ public class ProductController {
             response.put("executionTime", endTime - startTime);
 
             return ResponseEntity.ok(response);
-         } catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error in spark recommendations: ", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
@@ -126,8 +117,6 @@ public class ProductController {
     public ResponseEntity<List<ProductSummary>> getTopRatedProducts() {
         return ResponseEntity.ok(productService.getTopRatedProducts());
     }
-
-
 
 
 }
