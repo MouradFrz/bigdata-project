@@ -16,9 +16,7 @@ public class QueryParser {
     public static Document parseQuery(String input) {
         input = input.replaceAll("['\"?@:!]+", "");
 
-        input = input.replaceAll(",", ".");
-        input = input.toLowerCase();
-        input = input.substring(1, input.length() - 1);
+        input = input.toLowerCase().replaceAll(",", ".");
         log.info("Parsing query: {}", input);
         List<Document> orConditionsList = new ArrayList<>();
 
@@ -99,7 +97,7 @@ public class QueryParser {
     }
 
     private static Document getMongoOperator(String operator, double value) {
-        if (operator.matches("(?i)inférieur")) {
+        if (operator.matches("(?i)inférieur(e)?")) {
             return new Document("$lt", value);
         } else if (operator.matches("(?i)supérieur(e)?")) {
             return new Document("$gt", value);
