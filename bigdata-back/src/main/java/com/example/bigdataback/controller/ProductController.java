@@ -39,19 +39,25 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
-        userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
         log.info("Received user request.......... {}", userRequest.getRequest());
-        Document query = QueryParser.parseQuery(userRequest.getRequest());
-        log.info("Parsed query.........{}", query.toJson());
-        if (query.isEmpty() && !userRequest.getRequest().isEmpty()) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponse.builder()
-                            .code(HttpStatus.BAD_REQUEST.value())
-                            .message("The request you provided is invalid")
-                            .build()
-            );
+
+        if(userRequest.getRequest().isEmpty()) {
+            log.info("User request is empty.......... {}", userRequest.getRequest());
+            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, new Document()));
         } else {
-            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
+            log.info("User request is not empty.......... {}", userRequest.getRequest());
+            Document query = QueryParser.parseQuery(userRequest.getRequest());
+
+            if (!query.isEmpty()) {
+                log.info("Parsed query.........{}", query.toJson());
+                return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
+            } else {
+                log.info("Can't parse the request.......... {}", userRequest.getRequest());
+                userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
+                Document queryOllama = QueryParser.parseQuery(userRequest.getRequest());
+                log.info("Parsed query after ollama process.........{}", queryOllama.toJson());
+                return ResponseEntity.ok(productService.findByParsedQuery(userRequest, queryOllama));
+            }
         }
     }
 
