@@ -1,7 +1,10 @@
 package com.example.bigdataback.controller;
 
+import com.example.bigdataback.dto.CategoryStatsDTO;
 import com.example.bigdataback.dto.ErrorResponse;
 import com.example.bigdataback.dto.ProductSummary;
+import com.example.bigdataback.dto.RatingDistributionDTO;
+import com.example.bigdataback.dto.ReviewTimelineDTO;
 import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.parser.QueryParser;
@@ -116,6 +119,19 @@ public class ProductController {
     @GetMapping("/top-rated")
     public ResponseEntity<List<ProductSummary>> getTopRatedProducts() {
         return ResponseEntity.ok(productService.getTopRatedProducts());
+    }
+    @GetMapping("/rating-distribution")
+    public ResponseEntity<List<RatingDistributionDTO>> getRatingDistribution() {
+        return ResponseEntity.ok(productService.getRatingDistribution());
+    }
+    @GetMapping("/category-stats")
+    public ResponseEntity<List<CategoryStatsDTO>> getCategoryStats() {
+        return ResponseEntity.ok(productService.getCategoryStats());
+    }
+
+    @GetMapping("/review-timeline")
+    public ResponseEntity<List<ReviewTimelineDTO>> getReviewTimeline() {
+        return ResponseEntity.ok(productService.getReviewTimeline());
     }
 
 
