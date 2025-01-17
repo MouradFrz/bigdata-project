@@ -1,7 +1,6 @@
 package com.example.bigdataback.service;
 
 import com.example.bigdataback.dto.UserRequest;
-import com.example.bigdataback.dto.CategoryStatsDTO;
 import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.RatingDistributionDTO;
 import com.example.bigdataback.dto.ReviewTimelineDTO;
@@ -10,6 +9,9 @@ import com.example.bigdataback.entity.Review;
 import com.example.bigdataback.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.bson.Document;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -26,10 +28,10 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import static org.apache.spark.sql.functions.col;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -37,6 +39,9 @@ public class ProductService {
 
     private final MongoTemplate mongoTemplate;
     private final ProductRepository productRepository;
+
+    private final SparkSession sparkSession;
+
 
     public Page<Product> findByParsedQuery(UserRequest userRequest, Document query) {
         PageRequest pageRequest = PageRequest.of(userRequest.getPage(), userRequest.getSize());
@@ -74,7 +79,7 @@ public class ProductService {
             Aggregation.sort(Sort.Direction.ASC, "rating")
         );
 
-        AggregationResults<RatingDistributionDTO> results = 
+        AggregationResults<RatingDistributionDTO> results =
             mongoTemplate.aggregate(aggregation, RatingDistributionDTO.class);
         return results.getMappedResults();
     }
@@ -92,13 +97,13 @@ public class ProductService {
             Aggregation.sort(Sort.Direction.DESC, "averageRating")
         );
 
-        AggregationResults<CategoryStatsDTO> results = 
+        AggregationResults<CategoryStatsDTO> results =
             mongoTemplate.aggregate(aggregation, CategoryStatsDTO.class);
         return results.getMappedResults();
     }
 
     // 3. Review Timeline Analysis
-    
+
     public List<ReviewTimelineDTO> getReviewTimeline() {
         TypedAggregation<Review> aggregation = Aggregation.newAggregation(
             Review.class,
@@ -118,10 +123,34 @@ public class ProductService {
             Aggregation.sort(Sort.Direction.ASC, "timestamp")
         );
 
-        AggregationResults<ReviewTimelineDTO> results = 
+        AggregationResults<ReviewTimelineDTO> results =
             mongoTemplate.aggregate(aggregation, "reviews", ReviewTimelineDTO.class);
         return results.getMappedResults();
     }
+    public String getProductCategory(String parentAsin) {
+        try {
+            Dataset<Row> product = sparkSession.read()
+                    .format("mongodb")
+                    .option("uri", "mongodb://localhost:27017")
+                    .option("database", "amazon_reviews")
+                    .option("collection", "metadata")
+                    .load()  // D'abord charger les données
+                    .filter(col("parent_asin").equalTo(parentAsin))
+                    .filter(col("main_category").isin("Movies & TV", "Toys & Games"))
+                    .select("main_category");
+
+            if (product.count() == 0) {
+                log.warn("No product found for parentAsin: {}", parentAsin);
+                return null;
+            }
+
+            return product.first().getString(0);
+        } catch (Exception e) {
+            log.error("Error getting product category: {}", e.getMessage());
+            return null;
+        }
+    }
+
 
 
 }
