@@ -1,9 +1,6 @@
 package com.example.bigdataback.service;
 
-import com.example.bigdataback.dto.UserRequest;
-import com.example.bigdataback.dto.ProductSummary;
-import com.example.bigdataback.dto.RatingDistributionDTO;
-import com.example.bigdataback.dto.ReviewTimelineDTO;
+import com.example.bigdataback.dto.*;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.entity.Review;
 import com.example.bigdataback.repository.ProductRepository;
