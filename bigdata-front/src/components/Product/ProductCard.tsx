@@ -3,7 +3,7 @@ import { Product } from '../../types';
 import { displayStars } from '../Index/ProductCard';
 import { useNavigate } from 'react-router-dom';
 
-function truncateText(text: string, maxLength: number): string {
+export function truncateText(text: string, maxLength: number): string {
     if (text.length > maxLength) {
         return text.substring(0, maxLength) + '...';
     }

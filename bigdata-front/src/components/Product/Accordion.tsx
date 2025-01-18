@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import AnimateHeight from 'react-animate-height';
 import { useState } from 'react';
 import { Review } from '../../types';
@@ -6,14 +6,21 @@ import { displayStars } from '../Index/ProductCard';
 import Checkmark from '../../../public/checkmark.svg';
 function Accordion({ reviews }: { reviews: Review[] }) {
     const [active1, setActive1] = useState<string>('0');
+    const [displayedReviewsCount, setDisplayedReviewsCount] = useState<number>(5);
     const togglePara1 = (value: string) => {
         setActive1((oldValue) => {
             return oldValue === value ? '' : value;
         });
     };
+    const showMoreReviews = useCallback(
+        (incrementBy: number) => {
+            setDisplayedReviewsCount((prev) => prev + incrementBy);
+        },
+        [displayedReviewsCount]
+    );
     return (
         <div className="mb-5">
-            {reviews.map((review, index) => {
+            {reviews.slice(0, displayedReviewsCount).map((review, index) => {
                 return (
                     <div key={index} className="border border-[#d3d3d3] dark:border-[#3b3f5c] rounded font-semibold">
                         <div className="border-b h-min border-[#d3d3d3] dark:border-[#3b3f5c]">
@@ -38,6 +45,9 @@ function Accordion({ reviews }: { reviews: Review[] }) {
                     </div>
                 );
             })}
+            <button className="btn shadow-none w-full" disabled={displayedReviewsCount >= reviews.length} onClick={() => showMoreReviews(10)}>
+                Voir plus de commentaires
+            </button>
         </div>
     );
 }
