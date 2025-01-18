@@ -7,6 +7,7 @@ import com.example.bigdataback.dto.ReviewTimelineDTO;
 import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.parser.QueryParser;
+import com.example.bigdataback.service.MovieRecommendationService;
 import com.example.bigdataback.service.ProductDetailService;
 import com.example.bigdataback.service.ProductService;
 import com.example.bigdataback.service.SparkRecommendationService;
@@ -34,6 +35,8 @@ public class ProductController {
     private final ProductDetailService productDetailService;
 
     private final SparkRecommendationService sparkRecommendationService;
+
+    private final MovieRecommendationService movieRecommendationService;
 
     @PostMapping
     public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
@@ -89,19 +92,45 @@ public class ProductController {
             @RequestParam(required = false, defaultValue = "5") Integer maxRecommendations) {
         try {
             long startTime = System.currentTimeMillis();
-            List<Product> recommendations = sparkRecommendationService.getSparkRecommendations(
-                    parentAsin,
-                    maxRecommendations
-            );
+
+            // Vérifier la catégorie du produit
+            String category = productService.getProductCategory(parentAsin);
+            if (category == null) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Product not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+
+            // Obtenir les recommandations selon la catégorie
+            List<Product> recommendations;
+            if (category.equals("Movies & TV")) {
+                recommendations = movieRecommendationService.getMovieRecommendations(
+                        parentAsin,
+                        maxRecommendations
+                );
+            } else if (category.equals("Toys & Games")) {
+                recommendations = sparkRecommendationService.getSparkRecommendations(
+                        parentAsin,
+                        maxRecommendations
+                );
+            } else {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Unsupported category: " + category);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+
             long endTime = System.currentTimeMillis();
 
             Map<String, Object> response = new HashMap<>();
             response.put("recommendations", recommendations);
             response.put("executionTime", endTime - startTime);
+            response.put("category", category);
+            response.put("count", recommendations.size());
 
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            log.error("Error in spark recommendations: ", e);
+            log.error("Error in recommendations for asin {}: ", parentAsin, e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
             errorResponse.put("stackTrace", ExceptionUtils.getStackTrace(e));
