@@ -1,6 +1,7 @@
 import React from 'react';
 import { Product } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import { truncateText } from '../Product/ProductCard';
 export const displayStars = (rating: number) => {
     const fullStarsCount = Math.floor(rating);
     const hasHalfStar = fullStarsCount + 0.5 <= rating;
@@ -59,7 +60,7 @@ function ProductCard({ product }: { product: Product }) {
                         <div className="flex justify-between">
                             <h5 className="text-[#3b3f5c] text-[24px] leading-8 font-semibold mb-1 dark:text-white-light">{product.title}</h5>
                         </div>
-                        <p className="font-semibold text-white-dark mt-4">{product.description[0] ?? 'This product has no description'}</p>
+                        <p className="font-semibold text-white-dark mt-4">{truncateText(product.description[0], 150) ?? 'This product has no description'}</p>
                         <div className="flex justify-between mt-8 align-bottom">
                             <div className="flex justify-between items-center gap-5">
                                 <p className="text-3xl text-red-600 font-extrabold">{product.price ? product.price + ' $' : 'Price unavailable'} </p>

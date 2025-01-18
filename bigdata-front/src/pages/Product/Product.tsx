@@ -5,6 +5,7 @@ import { mockReviews } from '../../mockapi/mockReviews';
 import Carousel from '../../components/Product/Carousel';
 import Accordion from '../../components/Product/Accordion';
 import Loader from '../../components/Loader';
+import { truncateText } from '../../components/Product/ProductCard';
 
 function Product() {
     const { productWithReviews, error, recommendationsError, recommendations } = useProductVM();
@@ -24,7 +25,7 @@ function Product() {
                         <h1 className="font-extrabold text-2xl">{productWithReviews.product.title}</h1>
                         <h3 className="font-extrabold text-xl text-red-600 mb-3">{productWithReviews.product.price ? `${productWithReviews.product.price} $` : 'Price unavailable'}</h3>
                         <h3 className="font-bold mb-2 text-lg">A propos de cet article</h3>
-                        <p className="text-lg max-w-[75%]">{productWithReviews.product.description}</p>
+                        <p className="text-lg max-w-[75%]">{truncateText(productWithReviews.product.description[0], 300)}</p>
                     </div>
                 </div>
             ) : (
