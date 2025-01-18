@@ -26,6 +26,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import static org.apache.spark.sql.functions.col;
+
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,22 +48,59 @@ public class ProductService {
         return new PageImpl<>(products, pageRequest, products.size());
     }
 
-    public List<ProductSummary> getTopRatedProducts() {
-        Query query = new Query()
-                .addCriteria(Criteria.where("rating_number").gt(65000)) // Filtre : rating_number > 2500
-                .with(Sort.by(Sort.Direction.DESC, "average_rating")) // Tri par average_rating décroissant
-                .limit(10); // Limite à 10 résultats
+    public List<ProductSummary> getTopRatedProductsByCategory(String mainCategory) {
+        // Étape 1: Calculer la moyenne globale des notes pour la catégorie sélectionnée
+        Aggregation avgAggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("main_category").is(mainCategory)),
+                Aggregation.group().avg("average_rating").as("globalAverage")
+        );
 
-        List<Product> products = mongoTemplate.find(query, Product.class);
+        // Exécuter l'agrégation pour obtenir la moyenne globale
+        AggregationResults<Document> avgResult = mongoTemplate.aggregate(avgAggregation, "metadata", Document.class);
+        double globalAverage = avgResult.getUniqueMappedResult() != null ?
+                avgResult.getUniqueMappedResult().getDouble("globalAverage") :
+                3.5; // Valeur par défaut si aucune donnée
 
-        // Transformation en DTO
-        return products.stream()
-                .map(product -> new ProductSummary(
-                        product.getId().toHexString(), // Conversion ObjectId en String
-                        product.getTitle(),
-                        product.getAverageRating(),
-                        product.getRatingNumber()
-                ))
+        // Seuil minimal de votes pour être pertinent (ex. 5000 avis)
+        int C = 5000;
+
+        // Étape 2: Récupérer tous les produits de la catégorie
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(
+                        Criteria.where("main_category").is(mainCategory)
+                                .and("rating_number").exists(true)
+                                .and("average_rating").exists(true)
+                ),
+                // Trier par average_rating descendant avant de calculer le score
+                Aggregation.sort(Sort.by(Sort.Direction.DESC, "average_rating")),
+                // S'assurer que les noms des produits sont uniques
+                Aggregation.group("title")
+                        .first("_id").as("id")
+                        .first("title").as("title")
+                        .first("average_rating").as("average_rating")
+                        .first("rating_number").as("rating_number")
+        );
+
+        List<Document> productDocs = mongoTemplate.aggregate(aggregation, "metadata", Document.class).getMappedResults();
+
+        // Étape 3: Appliquer la pondération bayésienne et trier les produits en conséquence
+        return productDocs.stream()
+                .map(doc -> {
+                    double R = doc.getDouble("average_rating");
+                    int v = doc.getInteger("rating_number", 0);
+
+                    // Calcul du score bayésien
+                    double W = ((R * v) + (C * globalAverage)) / (v + C);
+
+                    return new ProductSummary(
+                            doc.getObjectId("id").toHexString(),
+                            doc.getString("title"),
+                            W, // Utilisation du score bayésien au lieu du average_rating brut
+                            v
+                    );
+                })
+                .sorted(Comparator.comparing(ProductSummary::getAverageRating).reversed()) // Trier selon W
+                .limit(10) // Limiter aux 10 meilleurs
                 .collect(Collectors.toList());
     }
 
