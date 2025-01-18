@@ -7,7 +7,10 @@ export const statsApi = createApi({
         getTopRated: builder.query<{ title: string; averagerating: number; ratingNumber: number }[], void>({
             query: () => `/products/top-rated`,
         }),
+        getRatingDistribution: builder.query<{ rating: number; count: number }[], void>({
+            query: () => `/products/rating-distribution`,
+        }),
     }),
 });
 
-export const { useGetTopRatedQuery } = statsApi;
+export const { useGetTopRatedQuery, useGetRatingDistributionQuery } = statsApi;

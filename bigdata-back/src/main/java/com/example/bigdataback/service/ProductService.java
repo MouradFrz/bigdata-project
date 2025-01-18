@@ -1,7 +1,6 @@
 package com.example.bigdataback.service;
 
 import com.example.bigdataback.dto.UserRequest;
-import com.example.bigdataback.dto.CategoryStatsDTO;
 import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.RatingDistributionDTO;
 import com.example.bigdataback.dto.ReviewTimelineDTO;
@@ -78,24 +77,7 @@ public class ProductService {
             mongoTemplate.aggregate(aggregation, RatingDistributionDTO.class);
         return results.getMappedResults();
     }
-        // 2. Category Performance Analysis
-    public List<CategoryStatsDTO> getCategoryStats() {
-        TypedAggregation<Product> aggregation = Aggregation.newAggregation(
-            Product.class,
-            Aggregation.group("main_category")
-                .avg("average_rating").as("averageRating")
-                .count().as("totalProducts"),
-            Aggregation.project()
-                .and("_id").as("mainCategory")
-                .and("averageRating").as("averageRating")
-                .and("totalProducts").as("totalProducts"),
-            Aggregation.sort(Sort.Direction.DESC, "averageRating")
-        );
 
-        AggregationResults<CategoryStatsDTO> results = 
-            mongoTemplate.aggregate(aggregation, CategoryStatsDTO.class);
-        return results.getMappedResults();
-    }
 
     // 3. Review Timeline Analysis
     
