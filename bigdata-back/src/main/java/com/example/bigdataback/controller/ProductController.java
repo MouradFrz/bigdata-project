@@ -6,6 +6,7 @@ import com.example.bigdataback.dto.RatingDistributionDTO;
 import com.example.bigdataback.dto.ReviewTimelineDTO;
 import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.entity.Product;
+import com.example.bigdataback.ollama.OllamaService;
 import com.example.bigdataback.parser.QueryParser;
 import com.example.bigdataback.service.MovieRecommendationService;
 import com.example.bigdataback.service.ProductDetailService;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 @RestController
 @RequestMapping(value = "/products")
 @CrossOrigin(origins = "*")
@@ -36,22 +38,29 @@ public class ProductController {
 
     private final SparkRecommendationService sparkRecommendationService;
 
+    private final OllamaService ollamaService;
+
     private final MovieRecommendationService movieRecommendationService;
 
     @PostMapping
     public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
         log.info("Received user request.......... {}", userRequest.getRequest());
+
+        /* decommenter ce code si vous avez pas LLM ollama et commenter le code qui reste
+
         Document query = QueryParser.parseQuery(userRequest.getRequest());
-        log.info("Parsed query.........{}", query.toJson());
-        if (query.isEmpty() && !userRequest.getRequest().isEmpty()) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponse.builder()
-                            .code(HttpStatus.BAD_REQUEST.value())
-                            .message("The request you provided is invalid")
-                            .build()
-            );
+        return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
+        */
+
+        if(userRequest.getRequest().isEmpty()) {
+            log.info("User request is empty.......... {}", userRequest.getRequest());
+            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, new Document()));
         } else {
-            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
+            log.info("User request is not empty.......... {}", userRequest.getRequest());
+            userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
+            Document queryOllama = QueryParser.parseQuery(userRequest.getRequest());
+            log.info("Parsed query after ollama process.........{}", queryOllama.toJson());
+            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, queryOllama));
         }
     }
 
@@ -73,6 +82,13 @@ public class ProductController {
                         ErrorResponse.builder()
                                 .code(HttpStatus.NOT_FOUND.value())
                                 .message("Le produit n'existe pas")
+                                .build()
+                );
+            } else if (errorMessage.startsWith("NO_REVIEWS_FOUND:")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        ErrorResponse.builder()
+                                .code(HttpStatus.NOT_FOUND.value())
+                                .message("Le produit existe mais n'a pas de reviews")
                                 .build()
                 );
             } else {
