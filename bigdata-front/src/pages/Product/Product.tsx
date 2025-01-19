@@ -16,7 +16,7 @@ function Product() {
             {productWithReviews ? (
                 <div className="w-full flex gap-4">
                     {productWithReviews.product.images ? (
-                        <img src={productWithReviews.product.images[0].large} className="w-[40%] h-[40%]" alt="" />
+                        <img src={productWithReviews.product.images[0]?.large} className="w-[40%] h-[40%]" alt="" />
                     ) : (
                         <div className='className="w-[40%] h-[40%] bg-gray-500 rounded-md'></div>
                     )}

@@ -54,7 +54,7 @@ function ProductCard({ product }: { product: Product }) {
             <div className="w-full bg-white shadow-[4px_6px_10px_-3px_#bfc9d4] rounded border border-white-light dark:border-[#1b2e4b] dark:bg-[#191e3a] dark:shadow-none">
                 <div className="p-5 flex  flex-row ">
                     <div className=" w-40 h-40 overflow-hidden">
-                        {product.images ? <img src={product.images[0].large} alt="profile" className="w-full h-full object-cover" /> : <div className=" bg-gray-500 rounded-md"></div>}
+                        {product.images ? <img src={product.images[0]?.large} alt="profile" className="w-full h-full object-cover" /> : <div className=" bg-gray-500 rounded-md"></div>}
                     </div>
                     <div className="flex-1 ltr:sm:pl-5 rtl:sm:pr-5 text-left">
                         <div className="flex justify-between">
