@@ -4,6 +4,9 @@ import { displayStars } from '../Index/ProductCard';
 import { useNavigate } from 'react-router-dom';
 
 export function truncateText(text: string, maxLength: number): string {
+    if (text === undefined) {
+        return '';
+    }
     if (text.length > maxLength) {
         return text.substring(0, maxLength) + '...';
     }
