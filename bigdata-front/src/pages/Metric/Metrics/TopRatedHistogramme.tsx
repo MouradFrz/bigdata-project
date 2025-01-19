@@ -20,7 +20,7 @@ function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
                 },
                 {
                     name: 'Note moyenne',
-                    data: data.map((product) => product.averagerating),
+                    data: data.map((product) => product.averageRating.toFixed(3)),
                 },
             ],
             options: {
@@ -64,6 +64,7 @@ function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
                     opposite: false,
                     labels: {
                         offsetX: 0,
+                        show: false,
                     },
                 },
                 grid: {
