@@ -41,6 +41,12 @@ public class ProductController {
     public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
         log.info("Received user request.......... {}", userRequest.getRequest());
 
+        /* decommenter ce code si vous avez pas LLM ollama et commenter le code qui reste
+
+        Document query = QueryParser.parseQuery(userRequest.getRequest());
+        return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
+        */
+
         if(userRequest.getRequest().isEmpty()) {
             log.info("User request is empty.......... {}", userRequest.getRequest());
             return ResponseEntity.ok(productService.findByParsedQuery(userRequest, new Document()));
