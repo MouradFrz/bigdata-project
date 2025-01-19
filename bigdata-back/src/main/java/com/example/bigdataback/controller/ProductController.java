@@ -46,18 +46,10 @@ public class ProductController {
             return ResponseEntity.ok(productService.findByParsedQuery(userRequest, new Document()));
         } else {
             log.info("User request is not empty.......... {}", userRequest.getRequest());
-            Document query = QueryParser.parseQuery(userRequest.getRequest());
-
-            if (!query.isEmpty()) {
-                log.info("Parsed query.........{}", query.toJson());
-                return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
-            } else {
-                log.info("Can't parse the request.......... {}", userRequest.getRequest());
-                userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
-                Document queryOllama = QueryParser.parseQuery(userRequest.getRequest());
-                log.info("Parsed query after ollama process.........{}", queryOllama.toJson());
-                return ResponseEntity.ok(productService.findByParsedQuery(userRequest, queryOllama));
-            }
+            userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
+            Document queryOllama = QueryParser.parseQuery(userRequest.getRequest());
+            log.info("Parsed query after ollama process.........{}", queryOllama.toJson());
+            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, queryOllama));
         }
     }
 
