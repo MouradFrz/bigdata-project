@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import org.bson.types.ObjectId;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Document(collection = "metadata")
@@ -33,7 +34,8 @@ public class Product {
     private List<ProductVideo> videos;
     private String store;
     private List<String> categories;
-    private ProductDetails details;
+    @JsonIgnore
+    private Map<String, Object> details;
 
     @Field("parent_asin")
     private String parentAsin;

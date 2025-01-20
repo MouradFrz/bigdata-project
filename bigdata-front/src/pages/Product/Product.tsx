@@ -1,7 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useProductVM from './ProductVM';
-import { mockProducts } from '../../mockapi/mockProducts';
-import { mockReviews } from '../../mockapi/mockReviews';
 import Carousel from '../../components/Product/Carousel';
 import Accordion from '../../components/Product/Accordion';
 import Loader from '../../components/Loader';
@@ -9,6 +7,7 @@ import { truncateText } from '../../components/Product/ProductCard';
 
 function Product() {
     const { productWithReviews, error, recommendationsError, recommendations } = useProductVM();
+    const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
     if (error) return <>Something went wrong</>;
 
     return (
@@ -48,10 +47,15 @@ function Product() {
                 </div>
             )}
 
-            <h2 className="text-3xl font-extrabold my-4">Avis client</h2>
+            <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-extrabold my-4">Avis client</h2>
+                <button className="btn btn-primary" onClick={() => setShowVerifiedOnly(!showVerifiedOnly)}>
+                    {showVerifiedOnly ? 'Afficher tous' : 'Afficher les avis vérifiés'}
+                </button>
+            </div>
             {productWithReviews ? (
                 <div>
-                    <Accordion reviews={productWithReviews.reviews} />
+                    <Accordion reviews={productWithReviews.reviews} showVerifiedOnly={showVerifiedOnly} />
                 </div>
             ) : (
                 <div className="flex justify-center">

@@ -39,8 +39,8 @@ export interface Review {
     parent_asin: string;
     user_id: string;
     timestamp: number;
-    helpful_vote: number;
-    verified_purchase: boolean;
+    helpfulVote: number;
+    verifiedPurchase: boolean;
 }
 
 export enum METRIC_TYPES {
