@@ -1,8 +1,10 @@
 package com.example.bigdataback.controller;
 
 import com.example.bigdataback.dto.ErrorResponse;
+import com.example.bigdataback.dto.PriceDistributionDTO;
 import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.RatingDistributionDTO;
+import com.example.bigdataback.dto.ReviewHelpfulnessDTO;
 import com.example.bigdataback.dto.ReviewTimelineDTO;
 import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.dto.VerifiedReviewComparisonDTO;
@@ -120,7 +122,7 @@ public class ProductController {
     public ResponseEntity<List<ProductSummary>> getTopRatedProducts(
             @RequestParam(required = false, defaultValue = "Toys & Games") String category
     ) {
-        return ResponseEntity.ok(productService.getTopRatedProductsByCategory(category));
+        return ResponseEntity.ok(productService.getTopRatedProducts());
     }
     @GetMapping("/rating-distribution")
     public ResponseEntity<List<RatingDistributionDTO>> getRatingDistribution() {
@@ -136,6 +138,16 @@ public class ProductController {
     @GetMapping("/verified-vs-nonverified")
     public ResponseEntity<List<VerifiedReviewComparisonDTO>> getVerifiedVsNonVerifiedComparison() {
         return ResponseEntity.ok(productService.getVerifiedVsNonVerifiedComparison());
+    }
+
+    @GetMapping("/price-distribution")
+    public ResponseEntity<List<PriceDistributionDTO>> getPriceDistribution() {
+        return ResponseEntity.ok(productService.getPriceDistribution());
+    }
+
+    @GetMapping("/review-helpfulness")
+    public ResponseEntity<List<ReviewHelpfulnessDTO>> getReviewHelpfulnessAnalysis() {
+        return ResponseEntity.ok(productService.getReviewHelpfulnessAnalysis());
     }
 
 

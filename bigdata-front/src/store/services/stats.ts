@@ -25,7 +25,30 @@ export const statsApi = createApi({
         >({
             query: () => `/products/verified-vs-nonverified`,
         }),
+        getPriceDistribution: builder.query<
+            {
+                category: string;
+                minPrice: number;
+                maxPrice: number;
+                avgPrice: number;
+                medianPrice: number;
+                productCount: number;
+            }[],
+            void
+        >({
+            query: () => `/products/price-distribution`,
+        }),
+        getReviewHelpfulness: builder.query<
+            {
+                rating: number;
+                averageHelpfulVotes: number;
+                reviewCount: number;
+            }[],
+            void
+        >({
+            query: () => `/products/review-helpfulness`,
+        }),
     }),
 });
 
-export const { useGetTopRatedQuery, useGetRatingDistributionQuery, useGetReviewTimelineQuery, useGetVerifiedComparisonQuery } = statsApi;
+export const { useGetTopRatedQuery, useGetRatingDistributionQuery, useGetReviewTimelineQuery, useGetVerifiedComparisonQuery, useGetPriceDistributionQuery, useGetReviewHelpfulnessQuery } = statsApi;

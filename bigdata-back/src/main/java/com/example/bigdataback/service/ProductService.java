@@ -2,8 +2,10 @@ package com.example.bigdataback.service;
 
 import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.dto.VerifiedReviewComparisonDTO;
+import com.example.bigdataback.dto.PriceDistributionDTO;
 import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.RatingDistributionDTO;
+import com.example.bigdataback.dto.ReviewHelpfulnessDTO;
 import com.example.bigdataback.dto.ReviewTimelineDTO;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.entity.Review;
@@ -161,6 +163,49 @@ public class ProductService {
     }
 
 
+    public List<PriceDistributionDTO> getPriceDistribution() {
+        TypedAggregation<Product> aggregation = Aggregation.newAggregation(
+            Product.class,
+            Aggregation.match(Criteria.where("price").exists(true).ne(null)),
+            Aggregation.group("main_category")
+                .min("price").as("minPrice")
+                .max("price").as("maxPrice")
+                .avg("price").as("avgPrice")
+                .count().as("productCount")
+                // For median, we'll use the average as an approximation since true median requires more complex operations
+                .avg("price").as("medianPrice"),
+            Aggregation.project()
+                .and("_id").as("category")
+                .and("minPrice").as("minPrice")
+                .and("maxPrice").as("maxPrice")
+                .and("avgPrice").as("avgPrice")
+                .and("medianPrice").as("medianPrice")
+                .and("productCount").as("productCount"),
+            Aggregation.sort(Sort.Direction.DESC, "productCount")
+        );
 
+        AggregationResults<PriceDistributionDTO> results =
+            mongoTemplate.aggregate(aggregation, "metadata", PriceDistributionDTO.class);
+        return results.getMappedResults();
+    }
+
+    public List<ReviewHelpfulnessDTO> getReviewHelpfulnessAnalysis() {
+        TypedAggregation<Review> aggregation = Aggregation.newAggregation(
+            Review.class,
+            Aggregation.match(Criteria.where("helpful_vote").exists(true)),
+            Aggregation.group("rating")
+                .avg("helpful_vote").as("averageHelpfulVotes")
+                .count().as("reviewCount"),
+            Aggregation.project()
+                .and("_id").as("rating")
+                .and("averageHelpfulVotes").as("averageHelpfulVotes")
+                .and("reviewCount").as("reviewCount"),
+            Aggregation.sort(Sort.Direction.ASC, "rating")
+        );
+
+        AggregationResults<ReviewHelpfulnessDTO> results =
+            mongoTemplate.aggregate(aggregation, "reviews", ReviewHelpfulnessDTO.class);
+        return results.getMappedResults();
+    }
 
 }
