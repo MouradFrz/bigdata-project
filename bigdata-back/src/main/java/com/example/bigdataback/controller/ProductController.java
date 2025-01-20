@@ -5,6 +5,7 @@ import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.RatingDistributionDTO;
 import com.example.bigdataback.dto.ReviewTimelineDTO;
 import com.example.bigdataback.dto.UserRequest;
+import com.example.bigdataback.dto.VerifiedReviewComparisonDTO;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.parser.QueryParser;
 import com.example.bigdataback.service.ProductDetailService;
@@ -130,6 +131,11 @@ public class ProductController {
     @GetMapping("/review-timeline")
     public ResponseEntity<List<ReviewTimelineDTO>> getReviewTimeline() {
         return ResponseEntity.ok(productService.getReviewTimeline());
+    }
+
+    @GetMapping("/verified-vs-nonverified")
+    public ResponseEntity<List<VerifiedReviewComparisonDTO>> getVerifiedVsNonVerifiedComparison() {
+        return ResponseEntity.ok(productService.getVerifiedVsNonVerifiedComparison());
     }
 
 

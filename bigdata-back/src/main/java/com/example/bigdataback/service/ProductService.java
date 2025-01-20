@@ -1,6 +1,7 @@
 package com.example.bigdataback.service;
 
 import com.example.bigdataback.dto.UserRequest;
+import com.example.bigdataback.dto.VerifiedReviewComparisonDTO;
 import com.example.bigdataback.dto.ProductSummary;
 import com.example.bigdataback.dto.RatingDistributionDTO;
 import com.example.bigdataback.dto.ReviewTimelineDTO;
@@ -109,6 +110,57 @@ public class ProductService {
             mongoTemplate.aggregate(aggregation, "reviews", ReviewTimelineDTO.class);
         return results.getMappedResults();
     }
+
+    public List<VerifiedReviewComparisonDTO> getVerifiedVsNonVerifiedComparison() {
+        TypedAggregation<Review> aggregation = Aggregation.newAggregation(
+            Review.class,
+            Aggregation.project()
+                .and(context -> new Document("$toDate", "$timestamp")).as("date")
+                .and("rating").as("rating")
+                .and("verified_purchase").as("verified_purchase"),
+            Aggregation.project()
+                .and(context -> new Document("$dateToString", 
+                    new Document("format", "%Y-%m-01")
+                        .append("date", "$date")
+                )).as("monthlyTimestamp")
+                .and("rating").as("rating")
+                .and("verified_purchase").as("verified_purchase"),
+            Aggregation.group("monthlyTimestamp")
+                .avg(context -> new Document("$cond", Arrays.asList(
+                    new Document("$eq", Arrays.asList("$verified_purchase", true)),
+                    "$rating",
+                    null
+                ))).as("verifiedRating")
+                .avg(context -> new Document("$cond", Arrays.asList(
+                    new Document("$eq", Arrays.asList("$verified_purchase", false)),
+                    "$rating",
+                    null
+                ))).as("nonVerifiedRating")
+                .sum(context -> new Document("$cond", Arrays.asList(
+                    new Document("$eq", Arrays.asList("$verified_purchase", true)),
+                    1,
+                    0
+                ))).as("verifiedCount")
+                .sum(context -> new Document("$cond", Arrays.asList(
+                    new Document("$eq", Arrays.asList("$verified_purchase", false)),
+                    1,
+                    0
+                ))).as("nonVerifiedCount"),
+            Aggregation.project()
+                .and("_id").as("month")
+                .and("verifiedRating").as("verifiedRating")
+                .and("nonVerifiedRating").as("nonVerifiedRating")
+                .and("verifiedCount").as("verifiedCount")
+                .and("nonVerifiedCount").as("nonVerifiedCount"),
+            Aggregation.sort(Sort.Direction.ASC, "month")
+        );
+
+        AggregationResults<VerifiedReviewComparisonDTO> results =
+            mongoTemplate.aggregate(aggregation, "reviews", VerifiedReviewComparisonDTO.class);
+        return results.getMappedResults();
+    }
+
+
 
 
 }

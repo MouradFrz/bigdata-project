@@ -13,7 +13,19 @@ export const statsApi = createApi({
         getReviewTimeline: builder.query<{ month: string; count: number }[], void>({
             query: () => `/products/review-timeline`,
         }),
+        getVerifiedComparison: builder.query<
+            {
+                month: string;
+                verifiedRating: number;
+                nonVerifiedRating: number;
+                verifiedCount: number;
+                nonVerifiedCount: number;
+            }[],
+            void
+        >({
+            query: () => `/products/verified-vs-nonverified`,
+        }),
     }),
 });
 
-export const { useGetTopRatedQuery, useGetRatingDistributionQuery, useGetReviewTimelineQuery } = statsApi;
+export const { useGetTopRatedQuery, useGetRatingDistributionQuery, useGetReviewTimelineQuery, useGetVerifiedComparisonQuery } = statsApi;
