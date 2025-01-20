@@ -153,9 +153,9 @@ public class ProductService {
                     .option("uri", "mongodb://localhost:27017")
                     .option("database", "amazon_reviews")
                     .option("collection", "metadata")
-                    .load()  // D'abord charger les données
+                    .load()
                     .filter(col("parent_asin").equalTo(parentAsin))
-                    .filter(col("main_category").isin("Movies & TV", "Toys & Games"))
+                    .filter(col("main_category").isin("Movies & TV", "Toys & Games", "Books"))
                     .select("main_category");
 
             if (product.count() == 0) {

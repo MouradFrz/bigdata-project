@@ -34,6 +34,7 @@ public class Product {
     private List<ProductVideo> videos;
     private String store;
     private List<String> categories;
+    @JsonIgnore
     private Map<String, List<String>> details;
 
     @Field("parent_asin")

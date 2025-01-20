@@ -34,7 +34,6 @@ public class ProductDetailService {
             Product product = productRepository.findByParentAsin(parentAsin)
                     .orElseThrow(() -> new RuntimeException("PRODUCT_NOT_FOUND: " + parentAsin));
 
-
             // 2. Récupérer les reviews avec Spark + MongoDB
             Dataset<Row> reviewsDF = spark.read()
                     .format("mongodb")
@@ -42,20 +41,18 @@ public class ProductDetailService {
                     .option("database", "amazon_reviews")
                     .option("collection", "reviews")
                     .load();
-            log.info("REVIEWS found: {}", reviewsDF.collectAsList());
+
+            log.info("Number of reviews found: {}", reviewsDF.count());
 
             List<Review> reviews = new ArrayList<>();
             Map<String, Object> stats = new HashMap<>();
+            reviewsDF = reviewsDF.filter(col("parent_asin").equalTo(parentAsin));
 
-            // veifier si les reviews existe dans la collection reviews
+            if (verifiedOnly) {
+                reviewsDF = reviewsDF.filter(col("verified_purchase").equalTo(true));
+            }
+
             if (!reviewsDF.isEmpty()) {
-                reviewsDF.filter(col("parent_asin").equalTo(parentAsin));
-
-
-                if (verifiedOnly) {
-                    reviewsDF = reviewsDF.filter(col("verified_purchase").equalTo(true));
-                }
-
                 // 3. Calculer les statistiques
                 Dataset<Row> statsDF = reviewsDF.agg(
                         count("*").as("total_reviews"),
