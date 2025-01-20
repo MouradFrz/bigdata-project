@@ -10,7 +10,10 @@ export const statsApi = createApi({
         getRatingDistribution: builder.query<{ rating: number; count: number }[], void>({
             query: () => `/products/rating-distribution`,
         }),
+        getReviewTimeline: builder.query<{ month: string; count: number }[], void>({
+            query: () => `/products/review-timeline`,
+        }),
     }),
 });
 
-export const { useGetTopRatedQuery, useGetRatingDistributionQuery } = statsApi;
+export const { useGetTopRatedQuery, useGetRatingDistributionQuery, useGetReviewTimelineQuery } = statsApi;

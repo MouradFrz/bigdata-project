@@ -85,16 +85,21 @@ public class ProductService {
         TypedAggregation<Review> aggregation = Aggregation.newAggregation(
             Review.class,
             Aggregation.project()
-                .and(context -> new Document("$subtract", Arrays.asList(
-                    "$timestamp",
-                    new Document("$mod", Arrays.asList("$timestamp", 86400000L))
-                ))).as("dailyTimestamp")
+                .and(context -> new Document("$toDate", "$timestamp")).as("date")
                 .and("rating").as("rating"),
-            Aggregation.group("dailyTimestamp")
+            Aggregation.project()
+                .and(context -> new Document("$dateToString", 
+                    new Document("format", "%Y-%m-01")
+                        .append("date", "$date")
+                )).as("monthlyTimestamp")
+                .and("rating").as("rating"),
+            Aggregation.group("monthlyTimestamp")
                 .count().as("reviewCount")
                 .avg("rating").as("averageRating"),
             Aggregation.project()
-                .and("_id").as("timestamp")
+                .and(context -> new Document("$dateFromString", 
+                    new Document("dateString", "$_id")
+                )).as("timestamp")
                 .and("reviewCount").as("reviewCount")
                 .and("averageRating").as("averageRating"),
             Aggregation.sort(Sort.Direction.ASC, "timestamp")
