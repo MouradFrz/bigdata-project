@@ -1,6 +1,7 @@
 import React from 'react';
 import { Product } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import { truncateText } from '../Product/ProductCard';
 export const displayStars = (rating: number) => {
     const fullStarsCount = Math.floor(rating);
     const hasHalfStar = fullStarsCount + 0.5 <= rating;
@@ -53,13 +54,13 @@ function ProductCard({ product }: { product: Product }) {
             <div className="w-full bg-white shadow-[4px_6px_10px_-3px_#bfc9d4] rounded border border-white-light dark:border-[#1b2e4b] dark:bg-[#191e3a] dark:shadow-none">
                 <div className="p-5 flex  flex-row ">
                     <div className=" w-40 h-40 overflow-hidden">
-                        {product.images ? <img src={product.images[0].large} alt="profile" className="w-full h-full object-cover" /> : <div className=" bg-gray-500 rounded-md"></div>}
+                        {product.images ? <img src={product.images[0]?.large} alt="profile" className="w-full h-full object-cover" /> : <div className=" bg-gray-500 rounded-md"></div>}
                     </div>
                     <div className="flex-1 ltr:sm:pl-5 rtl:sm:pr-5 text-left">
                         <div className="flex justify-between">
                             <h5 className="text-[#3b3f5c] text-[24px] leading-8 font-semibold mb-1 dark:text-white-light">{product.title}</h5>
                         </div>
-                        <p className="font-semibold text-white-dark mt-4">{product.description[0] ?? 'This product has no description'}</p>
+                        <p className="font-semibold text-white-dark mt-4">{truncateText(product.description[0], 150) ?? 'This product has no description'}</p>
                         <div className="flex justify-between mt-8 align-bottom">
                             <div className="flex justify-between items-center gap-5">
                                 <p className="text-3xl text-red-600 font-extrabold">{product.price ? product.price + ' $' : 'Price unavailable'} </p>

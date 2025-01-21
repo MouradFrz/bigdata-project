@@ -14,8 +14,9 @@ import java.util.regex.Pattern;
 public class QueryParser {
 
     public static Document parseQuery(String input) {
-        input = input.replaceAll("[\\'?@:!]+", "");
+        input = input.replaceAll("['\"?@:!]+", "");
 
+        input = input.toLowerCase().replaceAll(",", ".");
         log.info("Parsing query: {}", input);
         List<Document> orConditionsList = new ArrayList<>();
 
@@ -83,7 +84,7 @@ public class QueryParser {
 
         if (storeMatcher.find()) {
             String store = storeMatcher.group(2).trim();
-            return new Document("store", store);
+            return new Document("store", new Document("$regex", store).append("$options", "i"));
         }
 
         if (keywordMatcher.find()) {
@@ -96,7 +97,7 @@ public class QueryParser {
     }
 
     private static Document getMongoOperator(String operator, double value) {
-        if (operator.matches("(?i)inférieur")) {
+        if (operator.matches("(?i)inférieur(e)?")) {
             return new Document("$lt", value);
         } else if (operator.matches("(?i)supérieur(e)?")) {
             return new Document("$gt", value);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../../types';
 import { useGetFilteredProductsMutation } from '../../store/services/product';
-const searchEndpoint = 'http://localhost:9999/api/v1/products';
 
 function useIndexVM() {
     const [currentPage, setCurrentPage] = useState<number>(0);

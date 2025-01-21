@@ -8,6 +8,11 @@ spring:
   jvm:
     args: -Xmx4g -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=./
 
+  ai:
+    ollama:
+      chat:
+        options:
+          model: llama3.2
 server:
   port: 9999
   servlet:

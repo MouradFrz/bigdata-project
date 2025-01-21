@@ -1,6 +1,9 @@
 package com.example.bigdataback.service;
 
-import com.example.bigdataback.dto.*;
+import com.example.bigdataback.dto.ProductSummary;
+import com.example.bigdataback.dto.RatingDistributionDTO;
+import com.example.bigdataback.dto.ReviewTimelineDTO;
+import com.example.bigdataback.dto.UserRequest;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.entity.Review;
 import com.example.bigdataback.repository.ProductRepository;
@@ -16,21 +19,18 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
-import org.springframework.data.mongodb.core.aggregation.AggregationOperationContext;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.aggregation.TypedAggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
-import static org.apache.spark.sql.functions.col;
-
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
+
+import static org.apache.spark.sql.functions.col;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -44,7 +44,12 @@ public class ProductService {
 
     public Page<Product> findByParsedQuery(UserRequest userRequest, Document query) {
         PageRequest pageRequest = PageRequest.of(userRequest.getPage(), userRequest.getSize());
+
+        Long startTimeMongo = System.currentTimeMillis();
         List<Product> products = this.productRepository.findByParsedQuery(query, pageRequest);
+        Long endTimeMongo = System.currentTimeMillis();
+        log.info("Total time taken by mongo: {} s", (endTimeMongo - startTimeMongo) / 1000);
+
         return new PageImpl<>(products, pageRequest, products.size());
     }
 
@@ -119,24 +124,7 @@ public class ProductService {
             mongoTemplate.aggregate(aggregation, RatingDistributionDTO.class);
         return results.getMappedResults();
     }
-        // 2. Category Performance Analysis
-    public List<CategoryStatsDTO> getCategoryStats() {
-        TypedAggregation<Product> aggregation = Aggregation.newAggregation(
-            Product.class,
-            Aggregation.group("main_category")
-                .avg("average_rating").as("averageRating")
-                .count().as("totalProducts"),
-            Aggregation.project()
-                .and("_id").as("mainCategory")
-                .and("averageRating").as("averageRating")
-                .and("totalProducts").as("totalProducts"),
-            Aggregation.sort(Sort.Direction.DESC, "averageRating")
-        );
 
-        AggregationResults<CategoryStatsDTO> results =
-            mongoTemplate.aggregate(aggregation, CategoryStatsDTO.class);
-        return results.getMappedResults();
-    }
 
     // 3. Review Timeline Analysis
 
@@ -170,9 +158,9 @@ public class ProductService {
                     .option("uri", "mongodb://localhost:27017")
                     .option("database", "amazon_reviews")
                     .option("collection", "metadata")
-                    .load()  // D'abord charger les données
+                    .load()
                     .filter(col("parent_asin").equalTo(parentAsin))
-                    .filter(col("main_category").isin("Movies & TV", "Toys & Games"))
+                    .filter(col("main_category").isin("Movies & TV", "Toys & Games", "Books"))
                     .select("main_category");
 
             if (product.count() == 0) {

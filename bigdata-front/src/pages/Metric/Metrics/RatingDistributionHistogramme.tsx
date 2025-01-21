@@ -1,31 +1,26 @@
 import React, { useMemo } from 'react';
-import { useGetTopRatedQuery } from '../../../store/services/stats';
-import ReactApexChart from 'react-apexcharts';
-import { IRootState } from '../../../store';
-
 import { useSelector } from 'react-redux';
+import { IRootState } from '../../../store';
 import Loader from '../../../components/Loader';
 import { MetricSchema } from '../../../types';
+import { useGetRatingDistributionQuery } from '../../../store/services/stats';
+import ReactApexChart from 'react-apexcharts';
 
-function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
+function RatingDistributionHistogramme({ data: metricData }: { data: MetricSchema }) {
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
-    const { data, isError, isLoading } = useGetTopRatedQuery();
+    const { data, isError, isLoading } = useGetRatingDistributionQuery();
     const simpleColumnStacked: any = useMemo(() => {
         if (!data) return null;
         return {
             series: [
                 {
-                    name: "Nombre d'achat",
-                    data: data.map((product) => product.ratingNumber),
-                },
-                {
-                    name: 'Note moyenne',
-                    data: data.map((product) => product.averageRating.toFixed(3)),
+                    name: 'Nombre de review',
+                    data: data.map((note) => note.count),
                 },
             ],
             options: {
                 chart: {
-                    height: 300,
+                    height: 600,
                     type: 'bar',
                     stacked: true,
                     zoom: {
@@ -50,12 +45,12 @@ function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
                 ],
                 plotOptions: {
                     bar: {
-                        horizontal: false,
+                        horizontal: true,
                     },
                 },
                 xaxis: {
-                    type: 'string',
-                    categories: data.map((product) => product.title),
+                    type: 'float',
+                    categories: data.map((product) => product.rating),
                     axisBorder: {
                         color: isDark ? '#191e3a' : '#e0e6ed',
                     },
@@ -64,7 +59,6 @@ function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
                     opposite: false,
                     labels: {
                         offsetX: 0,
-                        show: false,
                     },
                 },
                 grid: {
@@ -94,9 +88,9 @@ function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
         <>
             <h1 className="font-extrabold text-3xl">{metricData.title}</h1>
             <p className="my-2">{metricData.description}</p>
-            <ReactApexChart series={simpleColumnStacked.series} options={simpleColumnStacked.options} className="rounded-lg bg-white dark:bg-black overflow-hidden" type="bar" height={300} />;
+            <ReactApexChart series={simpleColumnStacked.series} options={simpleColumnStacked.options} className="rounded-lg bg-white dark:bg-black overflow-hidden" type="bar" height={800} />;
         </>
     );
 }
 
-export default TopRatedHistogramme;
+export default RatingDistributionHistogramme;
