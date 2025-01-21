@@ -74,7 +74,7 @@ public class QueryParser {
 
         if (mainCategoryMatcher.find()) {
             String mainCategory = mainCategoryMatcher.group(2).trim();
-            return new Document("main_category", mainCategory);
+            return new Document("main_category", new Document("$regex", mainCategory).append("$options", "i"));
         }
 
         if (categoryMatcher.find()) {
@@ -89,6 +89,7 @@ public class QueryParser {
 
         if (keywordMatcher.find()) {
             String field = keywordMatcher.group(1).trim();
+            field = translateField(field);
             String keyword = keywordMatcher.group(3).trim();
             return new Document(field, new Document("$regex", keyword).append("$options", "i"));
         }
@@ -115,5 +116,12 @@ public class QueryParser {
             log.error("Failed to parse numeric value: {}", value, e);
             return 0.0;
         }
+    }
+
+    public static String translateField(String field) {
+        if(field.equals("titre")) {
+            return "title";
+        }
+        return field;
     }
 }

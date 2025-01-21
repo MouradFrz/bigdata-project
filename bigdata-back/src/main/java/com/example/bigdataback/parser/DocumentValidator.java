@@ -18,6 +18,10 @@ public class DocumentValidator {
                     return true;
                 }
             } else if (value instanceof List) {
+                if (("$and".equals(key) || "$or".equals(key)) && ((List<?>) value).size() < 2) {
+                    return true;
+                }
+
                 for (Object item : (List<?>) value) {
                     if (item instanceof Document && isEmptyDocument((Document) item)) {
                         return true;
