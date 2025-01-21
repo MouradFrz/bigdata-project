@@ -146,8 +146,8 @@ public class ProductController {
         Each bar will represent a product,the height will be based on the rating number and on the average_rating
      */
     @GetMapping("/top-rated")
-    public ResponseEntity<List<ProductSummary>> getTopRatedProducts() {
-        return ResponseEntity.ok(productService.getTopRatedProducts());
+    public ResponseEntity<List<ProductSummary>> getTopRatedProductsByCategory(@RequestParam String mainCategory) {
+        return ResponseEntity.ok(productService.getTopRatedProductsByCategory(mainCategory));
     }
     @GetMapping("/rating-distribution")
     public ResponseEntity<List<RatingDistributionDTO>> getRatingDistribution() {

@@ -5,6 +5,7 @@ import com.example.bigdataback.entity.Review;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.functions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +29,7 @@ public class SentimentAnalysisWithSparkService {
     }
 
     public SentimentStats analyzeSentimentsByParentAsin(String parentAsin) {
-        // Fetch reviews from MongoDB
+        // ✅ Fetch reviews from MongoDB (Only Title & Text, Ignore `parent_asin`)
         List<Review> reviews = mongoTemplate.find(
                 query(where("parent_asin").is(parentAsin)),
                 Review.class,
@@ -36,33 +37,35 @@ public class SentimentAnalysisWithSparkService {
         );
 
         if (reviews.isEmpty()) {
-            throw new IllegalArgumentException("No reviews found for the provided parent_asin: " + parentAsin);
+            throw new IllegalArgumentException("No reviews found for parent_asin: " + parentAsin);
         }
 
-        // Simplify reviews to include only title and text
+        // ✅ Keep Only Title and Text (No `parent_asin`)
         List<SimpleReview> simpleReviews = reviews.stream()
                 .map(review -> new SimpleReview(review.getTitle(), review.getText()))
                 .collect(Collectors.toList());
 
-        // Convert the simplified reviews to a Spark DataFrame
+        // ✅ Convert List to Spark DataFrame
         Dataset<Row> dataset = sparkSession.createDataFrame(simpleReviews, SimpleReview.class);
 
-        // Load pre-trained Spark NLP pipeline for sentiment analysis
+        // ✅ Load Pretrained Sentiment Analysis Pipeline
         PretrainedPipeline pipeline = new PretrainedPipeline("analyze_sentiment", "en");
 
-        // Transform dataset using Spark NLP pipeline
+        // ✅ Apply Sentiment Analysis
         Dataset<Row> sentimentDataset = pipeline.transform(dataset);
 
-        // Extract sentiment results from the annotations column
-        Dataset<Row> sentimentResults = sentimentDataset.selectExpr("explode(sentiment.result) as sentiment");
+        // ✅ Keep only one sentiment per review (avoid overcounting)
+        Dataset<Row> reviewSentiments = sentimentDataset
+                .withColumn("sentiment", functions.expr("sentiment.result[0]")) // Pick first sentiment for each review
+                .select("sentiment");
 
-        // Group by sentiment and count the occurrences
-        Dataset<Row> sentimentCounts = sentimentResults.groupBy("sentiment").count();
+        // ✅ Count unique reviews per sentiment category
+        Dataset<Row> sentimentCounts = reviewSentiments.groupBy("sentiment").count();
 
-        // Collect the results
+        // ✅ Collect Results
         List<Row> resultRows = sentimentCounts.collectAsList();
 
-        // Map the results to the SentimentStats object
+        // ✅ Map Results to SentimentStats DTO
         SentimentStats stats = new SentimentStats();
         for (Row row : resultRows) {
             String sentiment = row.getString(0);
@@ -83,7 +86,7 @@ public class SentimentAnalysisWithSparkService {
         return stats;
     }
 
-    // Inner class for simplified reviews
+    // ✅ Inner Class to Hold Only Title and Text
     public static class SimpleReview {
         private String title;
         private String text;
@@ -93,12 +96,7 @@ public class SentimentAnalysisWithSparkService {
             this.text = text;
         }
 
-        public String getTitle() {
-            return title;
-        }
-
-        public String getText() {
-            return text;
-        }
+        public String getTitle() { return title; }
+        public String getText() { return text; }
     }
 }

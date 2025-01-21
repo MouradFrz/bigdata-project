@@ -4,10 +4,7 @@ import com.example.bigdataback.dto.ReviewStatsDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import com.example.bigdataback.service.ReviewService;
 
 import java.util.Map;
@@ -29,4 +26,11 @@ public class ReviewController {
     public ResponseEntity<Map<String, Long>> getReviewCounts() {
         return ResponseEntity.ok(reviewService.getReviewCounts());
     }
+
+    @GetMapping("/count")
+    public long countReviewsByParentAsin(@RequestParam String parentAsin) {
+        return reviewService.countReviewsByParentAsin(parentAsin);
+    }
+
+
 }

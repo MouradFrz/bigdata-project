@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
+import org.bson.Document;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
@@ -37,4 +38,14 @@ public class ReviewService {
 
         return result;
     }
+
+    public long countReviewsByParentAsin(String parentAsin) {
+        // ✅ Construct the query to count reviews for the given parent_asin
+        Query query = new Query(Criteria.where("parent_asin").is(parentAsin));
+
+        // ✅ Execute the count query in MongoDB
+        return mongoTemplate.count(query, "reviews");
+    }
+
+
 }

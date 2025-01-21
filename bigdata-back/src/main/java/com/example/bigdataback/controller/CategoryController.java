@@ -21,7 +21,7 @@ public class CategoryController {
     //Not finished
     @GetMapping("/percentages")
     public ResponseEntity<List<SubCategoryPercentageDto>> getSubCategoryPercentages() {
-        List<SubCategoryPercentageDto> percentages = categoryService.getCategoryStatistics();
+        List<SubCategoryPercentageDto> percentages = categoryService.calculateSubCategoryPercentages();
         return ResponseEntity.ok(percentages);
     }
 }
