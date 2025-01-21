@@ -1,6 +1,7 @@
 package com.example.bigdataback.service;
 
 import com.example.bigdataback.entity.Product;
+import com.example.bigdataback.entity.ProductImage;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -96,7 +97,7 @@ public class BookRecommendationService {
                 .filter(col("parent_asin").notEqual(parentAsin))
                 .select(
                         "parent_asin", "title", "price", "average_rating",
-                        "rating_number", "categories", "description", "details"
+                        "rating_number", "categories", "description", "details","images"
                 )
                 .cache();
 
@@ -393,7 +394,7 @@ public class BookRecommendationService {
                 .select(
                         "parent_asin", "title", "price", "average_rating",
                         "rating_number", "categories", "description",
-                        "details", "final_score"
+                        "details", "final_score", "images"
                 )
                 .collectAsList()
                 .stream()
@@ -456,6 +457,11 @@ public class BookRecommendationService {
             product.setCategories(getListFromSeq(row, "categories"));
             product.setDescription(getListFromSeq(row, "description"));
 
+            List<ProductImage> images = getImagesFromRow(row);
+            if (images != null && !images.isEmpty()) {
+                product.setImages(images);
+            }
+
             Map<String, String> details = getMapFromRow(row, "details");
             if (!details.isEmpty()) {
                 Map<String, Object> convertedDetails = new HashMap<>();
@@ -470,4 +476,81 @@ public class BookRecommendationService {
             throw new RuntimeException("Failed to convert row to product", e);
         }
     }
+
+    private List<ProductImage> getImagesFromRow(Row row) {
+        try {
+            if (row.isNullAt(row.fieldIndex("images"))) {
+                log.debug("No images field for product: {}", getStringOrNull(row, "title"));
+                return Collections.emptyList();
+            }
+
+            scala.collection.Seq<Row> imageRows = row.getSeq(row.fieldIndex("images"));
+            if (imageRows == null) {
+                log.debug("Null images array for product: {}", getStringOrNull(row, "title"));
+                return Collections.emptyList();
+            }
+
+            List<Row> javaImageRows = scala.collection.JavaConverters.seqAsJavaList(imageRows);
+            List<ProductImage> images = javaImageRows.stream()
+                    .map(imageRow -> {
+                        ProductImage image = new ProductImage();
+                        String thumb = getStringFromImageRow(imageRow, "thumb");
+                        String large = getStringFromImageRow(imageRow, "large");
+                        String hiRes = getStringFromImageRow(imageRow, "hi_res");
+                        String variant = getStringFromImageRow(imageRow, "variant");
+
+                        image.setThumb(thumb);
+                        image.setLarge(large);
+                        image.setHiRes(hiRes);
+                        image.setVariant(variant);
+
+                        return image;
+                    })
+                    .filter(this::hasDisplayableUrl)
+                    .collect(Collectors.toList());
+
+            if (!images.isEmpty()) {
+                log.debug("Successfully extracted {} images for product: {}",
+                        images.size(),
+                        getStringOrNull(row, "title"));
+            }
+
+            return images;
+        } catch (Exception e) {
+            log.error("Error extracting images for product {}: {}",
+                    getStringOrNull(row, "title"),
+                    e.getMessage(),
+                    e);
+            return Collections.emptyList();
+        }
+    }
+
+    private boolean hasDisplayableUrl(ProductImage image) {
+        boolean hasUrl = image.getLarge() != null ||
+                image.getThumb() != null ||
+                image.getHiRes() != null;
+
+        if (!hasUrl) {
+            log.debug("Filtering out image without any usable URLs, variant: {}",
+                    image.getVariant());
+        }
+
+        return hasUrl;
+    }
+
+    private String getStringFromImageRow(Row imageRow, String fieldName) {
+        try {
+            if (imageRow.isNullAt(imageRow.fieldIndex(fieldName))) {
+                return null;
+            }
+            String value = imageRow.getString(imageRow.fieldIndex(fieldName));
+            return value != null && !value.trim().isEmpty() ? value.trim() : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        } catch (Exception e) {
+            log.debug("Error getting {} from image row: {}", fieldName, e.getMessage());
+            return null;
+        }
+    }
+
 }
