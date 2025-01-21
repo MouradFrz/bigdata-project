@@ -6,13 +6,16 @@ import Loader from '../../components/Loader';
 import { truncateText } from '../../components/Product/ProductCard';
 
 function Product() {
-    const { productWithReviews, error, recommendationsError, recommendations } = useProductVM();
+    const { productWithReviews, recommendations, isFetchingProductDetails, isFetchingRecommendations } = useProductVM();
     const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
-    if (error) return <>Something went wrong</>;
 
     return (
         <div>
-            {productWithReviews ? (
+            {isFetchingProductDetails ? (
+                <div className="flex justify-center">
+                    <Loader />{' '}
+                </div>
+            ) : productWithReviews ? (
                 <div className="w-full flex gap-4">
                     {productWithReviews.product.images ? (
                         <img src={productWithReviews.product.images[0].large} className="w-[40%] h-[40%]" alt="" />
@@ -28,23 +31,20 @@ function Product() {
                     </div>
                 </div>
             ) : (
+                <p>Could not fetch product details</p>
+            )}
+
+            <h2 className="text-3xl font-extrabold my-4">Produits Similaires</h2>
+            {isFetchingRecommendations || isFetchingProductDetails ? (
                 <div className="flex justify-center">
                     <Loader />{' '}
                 </div>
-            )}
-            <h2 className="text-3xl font-extrabold my-4">Produits Similaires</h2>
-            {recommendationsError ? (
-                <p>Could not fetch recommendations</p>
-            ) : (
+            ) : recommendations ? (
                 <div>
-                    {recommendations ? (
-                        <Carousel products={recommendations.recommendations} />
-                    ) : (
-                        <div className="flex justify-center">
-                            <Loader />{' '}
-                        </div>
-                    )}
+                    <Carousel products={recommendations.recommendations} />
                 </div>
+            ) : (
+                <p>Could not fetch recommendations</p>
             )}
 
             <div className="flex justify-between items-center">
@@ -53,14 +53,16 @@ function Product() {
                     {showVerifiedOnly ? 'Afficher tous' : 'Afficher les avis vérifiés'}
                 </button>
             </div>
-            {productWithReviews ? (
+            {isFetchingProductDetails ? (
+                <div className="flex justify-center">
+                    <Loader />{' '}
+                </div>
+            ) : productWithReviews ? (
                 <div>
                     <Accordion reviews={productWithReviews.reviews} showVerifiedOnly={showVerifiedOnly} />
                 </div>
             ) : (
-                <div className="flex justify-center">
-                    <Loader />{' '}
-                </div>
+                <p>Could not fetch product details</p>
             )}
         </div>
     );

@@ -22,7 +22,6 @@ function Accordion({ reviews, showVerifiedOnly }: { reviews: Review[]; showVerif
         <div className="mb-5">
             {reviews
                 .filter((review) => {
-                    console.log(review);
                     return showVerifiedOnly ? review.verifiedPurchase : true;
                 })
                 .slice(0, displayedReviewsCount)
