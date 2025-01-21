@@ -1,12 +1,9 @@
 package com.example.bigdataback.controller;
 
-import com.example.bigdataback.dto.ErrorResponse;
-import com.example.bigdataback.dto.ProductSummary;
-import com.example.bigdataback.dto.RatingDistributionDTO;
-import com.example.bigdataback.dto.ReviewTimelineDTO;
-import com.example.bigdataback.dto.UserRequest;
+import com.example.bigdataback.dto.*;
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.ollama.OllamaService;
+import com.example.bigdataback.parser.DocumentValidator;
 import com.example.bigdataback.parser.QueryParser;
 import com.example.bigdataback.service.MovieRecommendationService;
 import com.example.bigdataback.service.ProductDetailService;
@@ -16,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bson.Document;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,23 +42,44 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
+        Long startTime = System.currentTimeMillis();
+
         log.info("Received user request.......... {}", userRequest.getRequest());
 
-        /* decommenter ce code si vous avez pas LLM ollama et commenter le code qui reste
-
-        Document query = QueryParser.parseQuery(userRequest.getRequest());
-        return ResponseEntity.ok(productService.findByParsedQuery(userRequest, query));
-        */
-
-        if(userRequest.getRequest().isEmpty()) {
+        if (userRequest.getRequest().isEmpty()) {
             log.info("User request is empty.......... {}", userRequest.getRequest());
-            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, new Document()));
+            Page<Product> products = productService.findByParsedQuery(userRequest, new Document());
+            Long endTime = System.currentTimeMillis();
+            log.info("Total time taken to process the request: {} s", (endTime - startTime) / 1000);
+            return ResponseEntity.ok(products);
         } else {
+
             log.info("User request is not empty.......... {}", userRequest.getRequest());
-            userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
-            Document queryOllama = QueryParser.parseQuery(userRequest.getRequest());
-            log.info("Parsed query after ollama process.........{}", queryOllama.toJson());
-            return ResponseEntity.ok(productService.findByParsedQuery(userRequest, queryOllama));
+
+            Document query = QueryParser.parseQuery(userRequest.getRequest());
+            log.info("Parsed query 1 .........{}", query.toJson());
+
+            if (query.isEmpty() || DocumentValidator.containsInvalidParts(query)) {
+                log.info("Parsed query contains invalid parts..........");
+                Long startTimeOllama = System.currentTimeMillis();
+                userRequest.setRequest(ollamaService.refactorUserRequest(userRequest.getRequest()));
+                Long endTimeOllama = System.currentTimeMillis();
+                log.info("Total time taken by ollama: {} s", (endTimeOllama - startTimeOllama) / 1000);
+                Document queryOllama = QueryParser.parseQuery(userRequest.getRequest());
+                log.info("Parsed query after ollama process .........{}", queryOllama.toJson());
+                Page<Product> products = productService.findByParsedQuery(userRequest, queryOllama);
+                Long endTime = System.currentTimeMillis();
+                log.info("Total time taken to process the request: {} s", (endTime - startTime) / 1000);
+                return ResponseEntity.ok(products);
+            } else {
+                Document query1 = QueryParser.parseQuery(userRequest.getRequest());
+                log.info("Parsed query without ollama .........{}", query1.toJson());
+
+                Page<Product> products = productService.findByParsedQuery(userRequest, query1);
+                Long endTime = System.currentTimeMillis();
+                log.info("Total time taken to process the request: {} s", (endTime - startTime) / 1000);
+                return ResponseEntity.ok(products);
+            }
         }
     }
 
