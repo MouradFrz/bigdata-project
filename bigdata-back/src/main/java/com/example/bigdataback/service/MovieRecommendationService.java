@@ -417,12 +417,11 @@ public class MovieRecommendationService {
 
             if (!row.isNullAt(row.fieldIndex("details"))) {
                 Row detailsRow = row.getStruct(row.fieldIndex("details"));
-                Map<String, List<String>> details = new HashMap<>();
+                Map<String, Object> details = new HashMap<>();
 
                 for (String fieldName : detailsRow.schema().fieldNames()) {
                     if (!detailsRow.isNullAt(detailsRow.fieldIndex(fieldName))) {
                         String value = detailsRow.getString(detailsRow.fieldIndex(fieldName));
-                        // Convertir la valeur String en List<String> si nécessaire
                         details.put(fieldName, Collections.singletonList(value));
                     }
                 }

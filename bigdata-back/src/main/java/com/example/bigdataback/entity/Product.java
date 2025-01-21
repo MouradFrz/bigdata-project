@@ -35,7 +35,7 @@ public class Product {
     private String store;
     private List<String> categories;
     @JsonIgnore
-    private Map<String, List<String>> details;
+    private Map<String, Object> details;
 
     @Field("parent_asin")
     private String parentAsin;

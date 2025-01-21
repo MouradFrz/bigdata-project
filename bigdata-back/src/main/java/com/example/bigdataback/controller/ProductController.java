@@ -5,10 +5,7 @@ import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.ollama.OllamaService;
 import com.example.bigdataback.parser.DocumentValidator;
 import com.example.bigdataback.parser.QueryParser;
-import com.example.bigdataback.service.MovieRecommendationService;
-import com.example.bigdataback.service.ProductDetailService;
-import com.example.bigdataback.service.ProductService;
-import com.example.bigdataback.service.SparkRecommendationService;
+import com.example.bigdataback.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -39,6 +36,8 @@ public class ProductController {
     private final OllamaService ollamaService;
 
     private final MovieRecommendationService movieRecommendationService;
+
+    private final BookRecommendationService bookRecommendationService;
 
     @PostMapping
     public ResponseEntity<?> processingUserRequest(@RequestBody UserRequest userRequest) {
@@ -128,8 +127,8 @@ public class ProductController {
         try {
             long startTime = System.currentTimeMillis();
 
-            // Vérifier la catégorie du produit
             String category = productService.getProductCategory(parentAsin);
+            log.info("catégrie trouvée {}",category);
             if (category == null) {
                 Map<String, String> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Product not found");
@@ -148,7 +147,12 @@ public class ProductController {
                         parentAsin,
                         maxRecommendations
                 );
-            } else {
+            } else if (category.equals("Books")) {
+                recommendations = bookRecommendationService.getBookRecommendations(
+                        parentAsin,
+                        maxRecommendations
+                );
+            }else {
                 Map<String, String> errorResponse = new HashMap<>();
                 errorResponse.put("error", "Unsupported category: " + category);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
