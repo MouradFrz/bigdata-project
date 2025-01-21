@@ -185,10 +185,13 @@ public class ProductController {
      */
     @GetMapping("/top-rated")
 
-    public ResponseEntity<List<ProductSummary>> getTopRatedProductsByCategory(@RequestParam String mainCategory) {
+    public ResponseEntity<List<ProductSummary>> getTopRatedProductsByCategory(@RequestParam String mainCategory
+    ) {
         return ResponseEntity.ok(productService.getTopRatedProductsByCategory(mainCategory));
 
     }
+ 
+    
     @GetMapping("/rating-distribution")
     public ResponseEntity<List<RatingDistributionDTO>> getRatingDistribution() {
         return ResponseEntity.ok(productService.getRatingDistribution());
@@ -198,6 +201,21 @@ public class ProductController {
     @GetMapping("/review-timeline")
     public ResponseEntity<List<ReviewTimelineDTO>> getReviewTimeline() {
         return ResponseEntity.ok(productService.getReviewTimeline());
+    }
+
+    @GetMapping("/verified-vs-nonverified")
+    public ResponseEntity<List<VerifiedReviewComparisonDTO>> getVerifiedVsNonVerifiedComparison() {
+        return ResponseEntity.ok(productService.getVerifiedVsNonVerifiedComparison());
+    }
+
+    @GetMapping("/price-distribution")
+    public ResponseEntity<List<PriceDistributionDTO>> getPriceDistribution() {
+        return ResponseEntity.ok(productService.getPriceDistribution());
+    }
+
+    @GetMapping("/review-helpfulness")
+    public ResponseEntity<List<ReviewHelpfulnessDTO>> getReviewHelpfulnessAnalysis() {
+        return ResponseEntity.ok(productService.getReviewHelpfulnessAnalysis());
     }
 
 
