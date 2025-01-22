@@ -25,7 +25,7 @@ function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
             ],
             options: {
                 chart: {
-                    height: 300,
+                    height: 600,
                     type: 'bar',
                     stacked: true,
                     zoom: {
@@ -94,7 +94,7 @@ function TopRatedHistogramme({ data: metricData }: { data: MetricSchema }) {
         <>
             <h1 className="font-extrabold text-3xl">{metricData.title}</h1>
             <p className="my-2">{metricData.description}</p>
-            <ReactApexChart series={simpleColumnStacked.series} options={simpleColumnStacked.options} className="rounded-lg bg-white dark:bg-black overflow-hidden" type="bar" height={300} />;
+            <ReactApexChart series={simpleColumnStacked.series} options={simpleColumnStacked.options} className="rounded-lg bg-white dark:bg-black overflow-hidden" type="bar" height={600} />;
         </>
     );
 }

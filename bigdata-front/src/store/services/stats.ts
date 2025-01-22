@@ -5,7 +5,13 @@ export const statsApi = createApi({
     baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:9999/api/v1' }),
     endpoints: (builder) => ({
         getTopRated: builder.query<{ title: string; averageRating: number; ratingNumber: number }[], void>({
-            query: () => `/products/top-rated`,
+            query: () => ({
+                url: `/products/top-rated`,
+                method: 'GET',
+                params: {
+                    mainCategory: 'Toys & Games',
+                },
+            }),
         }),
         getRatingDistribution: builder.query<{ rating: number; count: number }[], void>({
             query: () => `/products/rating-distribution`,
