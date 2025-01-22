@@ -1,7 +1,8 @@
 package com.example.bigdataback.service;
 
 import com.example.bigdataback.entity.Product;
-import javax.annotation.PostConstruct;
+import com.example.bigdataback.entity.ProductImage;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.*;
@@ -120,7 +121,8 @@ public class SparkRecommendationService {
                         "rating_number",
                         "categories",
                         "description",
-                        "main_category"
+                        "main_category",
+                        "images"
                 )
                 .repartition(8)
                 .cache();
@@ -277,7 +279,8 @@ public class SparkRecommendationService {
                         "main_category",
                         "categories",
                         "description",
-                        "final_score"
+                        "final_score",
+                        "images"
                 )
                 .collectAsList()
                 .stream()
@@ -324,10 +327,70 @@ public class SparkRecommendationService {
                 product.setDescription(scala.collection.JavaConverters.seqAsJavaList(descSeq));
             }
 
+            try {
+                List<ProductImage> images = getImagesFromRow(row);
+                if (!images.isEmpty()) {
+                    product.setImages(images);
+                }
+            } catch (Exception e) {
+                log.warn("Error processing images for product {}: {}",
+                        product.getTitle(), e.getMessage());
+            }
+
             return product;
         } catch (Exception e) {
             log.error("Error converting row to product: {}", e.getMessage());
             throw new RuntimeException("Failed to convert row to product", e);
         }
     }
+
+    private List<ProductImage> getImagesFromRow(Row row) {
+        try {
+            if (row.isNullAt(row.fieldIndex("images"))) {
+                return Collections.emptyList();
+            }
+
+            scala.collection.Seq<Row> imageRows = row.getSeq(row.fieldIndex("images"));
+            if (imageRows == null) {
+                return Collections.emptyList();
+            }
+
+            List<Row> javaImageRows = scala.collection.JavaConverters.seqAsJavaList(imageRows);
+            return javaImageRows.stream()
+                    .map(imageRow -> {
+                        ProductImage image = new ProductImage();
+
+                        image.setThumb(getStringFromImageRow(imageRow, "thumb"));
+                        image.setLarge(getStringFromImageRow(imageRow, "large"));
+                        image.setHiRes(getStringFromImageRow(imageRow, "hi_res"));
+                        image.setVariant(getStringFromImageRow(imageRow, "variant"));
+
+                        return image;
+                    })
+                    .filter(this::hasDisplayableUrl)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error extracting images from row: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    private boolean hasDisplayableUrl(ProductImage image) {
+        return image.getLarge() != null ||
+                image.getThumb() != null ||
+                image.getHiRes() != null;
+    }
+
+    private String getStringFromImageRow(Row imageRow, String fieldName) {
+        try {
+            if (imageRow.isNullAt(imageRow.fieldIndex(fieldName))) {
+                return null;
+            }
+            String value = imageRow.getString(imageRow.fieldIndex(fieldName));
+            return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 }
