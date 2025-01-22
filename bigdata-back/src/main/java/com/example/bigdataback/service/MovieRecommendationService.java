@@ -1,6 +1,7 @@
 package com.example.bigdataback.service;
 
 import com.example.bigdataback.entity.Product;
+import com.example.bigdataback.entity.ProductImage;
 import jakarta.annotation.PostConstruct;
 import lombok.Builder;
 import lombok.Data;
@@ -103,7 +104,7 @@ public class MovieRecommendationService {
                 .select(
                         "parent_asin", "title", "price", "average_rating",
                         "rating_number", "categories", "description",
-                        "main_category", "details"
+                        "main_category", "details", "images"
                 )
                 .cache();
 
@@ -394,7 +395,7 @@ public class MovieRecommendationService {
                 .select(
                         "parent_asin", "title", "price", "average_rating",
                         "rating_number", "main_category", "categories",
-                        "description", "details", "final_score"
+                        "description", "details", "final_score", "images"
                 )
                 .collectAsList()
                 .stream()
@@ -414,7 +415,15 @@ public class MovieRecommendationService {
                     null : row.getInt(row.fieldIndex("rating_number")));
             product.setCategories(getListFromSeq(row, "categories"));
             product.setDescription(getListFromSeq(row, "description"));
-
+            try {
+                List<ProductImage> images = getImagesFromRow(row);
+                if (!images.isEmpty()) {
+                    product.setImages(images);
+                }
+            } catch (Exception e) {
+                log.warn("Error processing images for movie {}: {}",
+                        product.getTitle(), e.getMessage());
+            }
             if (!row.isNullAt(row.fieldIndex("details"))) {
                 Row detailsRow = row.getStruct(row.fieldIndex("details"));
                 Map<String, Object> details = new HashMap<>();
@@ -434,5 +443,52 @@ public class MovieRecommendationService {
             log.error("Error converting row to product: {}", e.getMessage());
             throw new RuntimeException("Failed to convert row to product", e);
         }
+    }
+
+    private List<ProductImage> getImagesFromRow(Row row) {
+        try {
+            if (row.isNullAt(row.fieldIndex("images"))) {
+                return Collections.emptyList();
+            }
+
+            scala.collection.Seq<Row> imageRows = row.getSeq(row.fieldIndex("images"));
+            if (imageRows == null) {
+                return Collections.emptyList();
+            }
+
+            List<Row> javaImageRows = scala.collection.JavaConverters.seqAsJavaList(imageRows);
+            return javaImageRows.stream()
+                    .map(imageRow -> {
+                        ProductImage image = new ProductImage();
+                        image.setThumb(getStringFromImageRow(imageRow, "thumb"));
+                        image.setLarge(getStringFromImageRow(imageRow, "large"));
+                        image.setHiRes(getStringFromImageRow(imageRow, "hi_res"));
+                        image.setVariant(getStringFromImageRow(imageRow, "variant"));
+                        return image;
+                    })
+                    .filter(this::hasDisplayableUrl)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.debug("Error extracting images: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    private String getStringFromImageRow(Row imageRow, String fieldName) {
+        try {
+            if (imageRow.isNullAt(imageRow.fieldIndex(fieldName))) {
+                return null;
+            }
+            String value = imageRow.getString(imageRow.fieldIndex(fieldName));
+            return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private boolean hasDisplayableUrl(ProductImage image) {
+        return image.getLarge() != null ||
+                image.getThumb() != null ||
+                image.getHiRes() != null;
     }
 }
