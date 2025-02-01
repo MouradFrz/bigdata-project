@@ -10,8 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.storage.StorageLevel;
 import org.springframework.stereotype.Service;
-
+import static org.apache.spark.sql.functions.when;
+import static org.apache.spark.sql.functions.array;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,7 +29,6 @@ public class MovieRecommendationService {
     public void init() {
         spark.udf().register("calculateActorMatch", calculateActorMatch);
         spark.udf().register("calculateMpaaMatch", calculateMpaaMatch);
-        spark.udf().register("calculateThemeMatch", calculateThemeMatch);
         log.info("Movie UDFs registered successfully");
     }
 
@@ -93,28 +94,23 @@ public class MovieRecommendationService {
     }
 
     private Dataset<Row> loadCandidates(String parentAsin) {
-        Dataset<Row> candidates = spark.read()
+        return spark.read()
                 .format("mongodb")
                 .option("uri", "mongodb://localhost:27017")
                 .option("database", "amazon_reviews")
                 .option("collection", "metadata")
                 .load()
-                .filter(col("main_category").equalTo("Movies & TV"))
-                .filter(col("parent_asin").notEqual(parentAsin))
+                .filter(col("main_category").equalTo("Movies & TV")
+                        .and(col("parent_asin").notEqual(parentAsin))
+                        .and(col("rating_number").gt(10))
+                        .and(col("average_rating").geq(3.0)))
                 .select(
                         "parent_asin", "title", "price", "average_rating",
                         "rating_number", "categories", "description",
                         "main_category", "details", "images"
                 )
-                .cache();
-
-        long count = candidates.count();
-        if (count == 0) {
-            log.warn("No candidates found");
-            return null;
-        }
-        log.info("Found {} candidates", count);
-        return candidates;
+                .repartition(4)
+                .persist(StorageLevel.MEMORY_AND_DISK());
     }
 
     private MovieMetadata extractMovieMetadata(Row row) {
@@ -205,51 +201,77 @@ public class MovieRecommendationService {
     );
 
     private Dataset<Row> calculateThemeScores(Dataset<Row> candidates, MovieMetadata source) {
+        Column stopwordsArray = array(
+                lit("the"), lit("a"), lit("an"), lit("and"), lit("or"), lit("but"),
+                lit("in"), lit("on"), lit("at"), lit("to"), lit("for"), lit("of"),
+                lit("with"), lit("by"), lit("from"), lit("up"), lit("about"),
+                lit("into"), lit("over"), lit("after"), lit("dvd"), lit("blu-ray"),
+                lit("edition"), lit("version"), lit("series")
+        );
+
+        List<String> sourceTexts = new ArrayList<>();
+        if (source.getTitle() != null) {
+            sourceTexts.add(source.getTitle());
+        }
+        if (source.getDescription() != null) {
+            sourceTexts.addAll(source.getDescription());
+        }
+
+        Dataset<Row> sourceWords = spark.createDataset(sourceTexts, Encoders.STRING())
+                .select(explode(
+                        split(lower(
+                                regexp_replace(col("value"), "[^a-zA-Z\\s]", " ")
+                        ), "\\s+")
+                ).as("word"))
+                .where(length(col("word")).gt(2)
+                        .and(not(array_contains(stopwordsArray, col("word")))))
+                .distinct();
+
+        long sourceKeywordsCount = sourceWords.count();
+        if (sourceKeywordsCount == 0) {
+            return candidates
+                    .withColumn("theme_score", lit(0.5))
+                    .select("parent_asin", "theme_score");
+        }
+
         return candidates
+                // Analyse du titre et de la description des candidats
+                .select(
+                        col("parent_asin"),
+                        explode(
+                                array(
+                                        col("title"),
+                                        coalesce(array_join(col("description"), " "), lit(""))
+                                )
+                        ).as("text")
+                )
+                // Extraction des mots
+                .select(
+                        col("parent_asin"),
+                        explode(
+                                split(lower(
+                                        regexp_replace(col("text"), "[^a-zA-Z\\s]", " ")
+                                ), "\\s+")
+                        ).as("word")
+                )
+                .where(length(col("word")).gt(2)
+                        .and(not(array_contains(stopwordsArray, col("word")))))
+                .distinct()
+                // Comparaison avec les mots-clés source
+                .join(sourceWords, "word")
+                .groupBy("parent_asin")
+                .agg(count("*").as("matching_words"))
+                // Calcul du score final
                 .withColumn("theme_score",
-                        callUDF("calculateThemeMatch",
-                                col("title"),
-                                col("description"),
-                                lit(source.getTitle()),
-                                array(source.getDescription().stream()
-                                        .map(functions::lit)
-                                        .toArray(Column[]::new))))
+                        lit(0.3).plus(
+                                least(
+                                        lit(0.7),
+                                        col("matching_words").divide(lit(sourceKeywordsCount))
+                                )
+                        ))
                 .select("parent_asin", "theme_score");
     }
 
-    private static UserDefinedFunction calculateThemeMatch = udf(
-            (String title, scala.collection.Seq<String> description,
-             String sourceTitle, scala.collection.Seq<String> sourceDescription) -> {
-
-                Set<String> themeKeywords = new HashSet<>();
-                Set<String> sourceKeywords = new HashSet<>();
-
-                Set<String> stopwords = new HashSet<>(Arrays.asList(
-                        "the", "a", "an", "and", "or", "but", "in", "on", "at", "to",
-                        "for", "of", "with", "by", "from", "up", "about", "into", "over",
-                        "after", "dvd", "blu-ray", "edition", "version", "series"
-                ));
-
-                addKeywords(sourceTitle, sourceKeywords, stopwords);
-                if (sourceDescription != null) {
-                    scala.collection.JavaConverters.seqAsJavaList(sourceDescription)
-                            .forEach(desc -> addKeywords(desc, sourceKeywords, stopwords));
-                }
-
-                addKeywords(title, themeKeywords, stopwords);
-                if (description != null) {
-                    scala.collection.JavaConverters.seqAsJavaList(description)
-                            .forEach(desc -> addKeywords(desc, themeKeywords, stopwords));
-                }
-
-                if (sourceKeywords.isEmpty()) return 0.5;
-
-                Set<String> intersection = new HashSet<>(sourceKeywords);
-                intersection.retainAll(themeKeywords);
-
-                return 0.3 + Math.min(0.7, (intersection.size() * 1.0 / sourceKeywords.size()));
-            }, DataTypes.DoubleType
-    );
 
     private Dataset<Row> calculateMpaaScores(Dataset<Row> candidates, String sourceMpaaRating) {
         return candidates

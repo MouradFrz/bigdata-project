@@ -30,7 +30,7 @@ public class SparkConfig {
 
             sparkSession = SparkSession.builder()
                     .appName("AmazonRecommendations")
-                    .master("local[*]")
+                    .master("local[4]")
                     // MongoDB Configuration
                     .config("spark.mongodb.input.uri", "mongodb://localhost:27017")
                     .config("spark.mongodb.output.uri", "mongodb://localhost:27017")

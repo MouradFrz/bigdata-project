@@ -2,17 +2,18 @@ package com.example.bigdataback.service;
 
 import com.example.bigdataback.entity.Product;
 import com.example.bigdataback.entity.ProductImage;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.UserDefinedFunction;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.storage.StorageLevel;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import static org.apache.spark.sql.functions.*;
 
 @Service
@@ -21,18 +22,36 @@ import static org.apache.spark.sql.functions.*;
 public class SparkRecommendationService {
 
     private final SparkSession spark;
+    private static final UserDefinedFunction calculateAgeMatch = udf(
+            (String title, scala.collection.Seq<String> description) -> {
+                StringBuilder searchText = new StringBuilder();
 
-    @PostConstruct
-    public void init() {
-        spark.udf().register("calculateAgeMatch", calculateAgeMatch);
-        log.info("UDFs registered successfully");
-    }
+                if (title != null) {
+                    searchText.append(title.toLowerCase()).append(" ");
+                }
+
+                if (description != null && !description.isEmpty()) {
+                    scala.collection.JavaConverters.seqAsJavaList(description)
+                            .forEach(desc -> searchText.append(desc.toLowerCase()).append(" "));
+                }
+
+                String fullText = searchText.toString();
+
+                if (fullText.contains("0-2") || fullText.contains("baby")) return 1.0;
+                if (fullText.contains("2-4") || fullText.contains("toddler")) return 1.0;
+                if (fullText.contains("4-8") || fullText.contains("kid")) return 1.0;
+                if (fullText.contains("8-12")) return 1.0;
+                if (fullText.contains("12+") || fullText.contains("teen")) return 1.0;
+
+                return 0.5;
+            },
+            DataTypes.DoubleType
+    );
 
     public List<Product> getSparkRecommendations(String parentAsin, Integer maxRecommendations) {
         try {
             log.info("Starting Spark recommendations for parentAsin: {}", parentAsin);
 
-            // 1. Charger et analyser le produit source
             Dataset<Row> sourceProduct = loadAndAnalyzeSourceProduct(parentAsin);
             if (sourceProduct == null) return Collections.emptyList();
 
@@ -43,41 +62,85 @@ public class SparkRecommendationService {
                 sourcePrice = sourceRow.getDouble(sourceRow.fieldIndex("price"));
             }
 
-            // 2. Charger les candidats
-            Dataset<Row> candidates = loadCandidates(sourceCategory, parentAsin);
+            Dataset<Row> candidates = loadCandidates(sourceCategory, parentAsin)
+                    .persist(StorageLevel.MEMORY_AND_DISK_SER());
             if (candidates == null) return Collections.emptyList();
 
-            // 3. Calculer les scores
-            Dataset<Row> ratingScores = calculateRatingScores(candidates);
-            Dataset<Row> keywordScores = calculateKeywordScores(candidates, sourceRow);
-            Dataset<Row> categoryScores = calculateCategoryScores(candidates, sourceRow);
-            Dataset<Row> priceScores = calculatePriceScores(candidates, sourcePrice);
-            Dataset<Row> ageScores = calculateAgeScores(candidates, sourceRow);
-
-            // 4. Assembler les recommandations
             Dataset<Row> recommendations = candidates
-                    .join(ratingScores, "parent_asin")
-                    .join(keywordScores, "parent_asin")
-                    .join(categoryScores, "parent_asin")
-                    .join(priceScores, "parent_asin")
-                    .join(ageScores, "parent_asin")
+                    // Rating score
+                    .withColumn("rating_score",
+                            when(col("average_rating").isNotNull()
+                                            .and(col("rating_number").isNotNull()),
+                                    col("average_rating").divide(5.0)
+                                            .multiply(when(col("rating_number").gt(100), 1.0)
+                                                    .when(col("rating_number").gt(50), 0.9)
+                                                    .when(col("rating_number").gt(20), 0.8)
+                                                    .otherwise(0.7)))
+                                    .otherwise(0.5))
+                    // Keyword score
+                    .withColumn("keyword_score",
+                            when(arrays_overlap(
+                                    split(lower(col("title")), " "),
+                                    split(lit(sourceRow.getString(sourceRow.fieldIndex("title")).toLowerCase()), " ")
+                            ), 1.0).otherwise(0.5))
+                    // Category score
+                    .withColumn("category_score",
+                            when(col("categories").isNull(), lit(0.5))
+                                    .otherwise(
+                                            when(size(array_intersect(col("categories"),
+                                                            array(scala.collection.JavaConverters.seqAsJavaList(
+                                                                            sourceRow.getSeq(sourceRow.fieldIndex("categories")))
+                                                                    .stream()
+                                                                    .map(functions::lit)
+                                                                    .toArray(Column[]::new)))).gt(0),
+                                                    size(array_intersect(col("categories"),
+                                                            array(scala.collection.JavaConverters.seqAsJavaList(
+                                                                            sourceRow.getSeq(sourceRow.fieldIndex("categories")))
+                                                                    .stream()
+                                                                    .map(functions::lit)
+                                                                    .toArray(Column[]::new))))
+                                                            .divide(size(array(scala.collection.JavaConverters.seqAsJavaList(
+                                                                            sourceRow.getSeq(sourceRow.fieldIndex("categories")))
+                                                                    .stream()
+                                                                    .map(functions::lit)
+                                                                    .toArray(Column[]::new))))
+                                                            .multiply(0.8)
+                                                            .plus(0.2))
+                                                    .otherwise(0.2)
+                                    ))
+                    // Price score
+                    .withColumn("price_score",
+                            when(lit(sourcePrice).isNull().or(col("price").isNull()), lit(0.5))
+                                    .otherwise(
+                                            when(col("price").leq(lit(sourcePrice))
+                                                    .and(col("price").geq(lit(sourcePrice == null ? 0.0 : sourcePrice * 0.7)))
+                                                    .and(col("average_rating").geq(lit(4.0))), lit(1.0))
+                                                    .when(col("price").geq(lit(sourcePrice))
+                                                            .and(col("price").leq(lit(sourcePrice == null ? 0.0 : sourcePrice * 1.3))), lit(0.8))
+                                                    .when(col("price").lt(lit(sourcePrice == null ? 0.0 : sourcePrice * 0.7))
+                                                            .and(col("price").geq(lit(sourcePrice == null ? 0.0 : sourcePrice * 0.5)))
+                                                            .and(col("average_rating").geq(lit(3.5))), lit(0.7))
+                                                    .otherwise(lit(0.3))
+                                    ))             // Age score
+                    .withColumn("age_score", calculateAgeMatch.apply(col("title"), col("description")))
+                    // Final score
                     .withColumn("final_score",
                             col("rating_score").multiply(0.25)
                                     .plus(col("keyword_score").multiply(0.3))
                                     .plus(col("category_score").multiply(0.2))
                                     .plus(col("price_score").multiply(0.15))
-                                    .plus(col("age_score").multiply(0.1))
-                    )
-                    .filter(
-                            col("rating_number").gt(10)
-                                    .and(col("final_score").gt(0.35))
-                    )
+                                    .plus(col("age_score").multiply(0.1)))
+                    .filter(col("rating_number").gt(10)
+                            .and(col("final_score").gt(0.35)))
                     .orderBy(col("final_score").desc())
-                    .limit(maxRecommendations);
+                    .limit(maxRecommendations)
+                    .persist(StorageLevel.MEMORY_AND_DISK_SER());
 
             List<Product> result = extractAndMapResults(recommendations);
 
-            cleanupDatasets(sourceProduct, candidates);
+            candidates.unpersist();
+            recommendations.unpersist();
+            System.gc();
 
             return result;
 
@@ -86,7 +149,6 @@ public class SparkRecommendationService {
             throw new RuntimeException("Failed to generate recommendations", e);
         }
     }
-
     private Dataset<Row> loadAndAnalyzeSourceProduct(String parentAsin) {
         Dataset<Row> sourceProduct = spark.read()
                 .format("mongodb")
@@ -95,6 +157,7 @@ public class SparkRecommendationService {
                 .option("collection", "metadata")
                 .load()
                 .filter(col("parent_asin").equalTo(parentAsin))
+
                 .cache();
 
         if (sourceProduct.count() == 0) {
@@ -105,36 +168,31 @@ public class SparkRecommendationService {
     }
 
     private Dataset<Row> loadCandidates(String sourceCategory, String parentAsin) {
-        Dataset<Row> candidates = spark.read()
+        return spark.read()
                 .format("mongodb")
                 .option("uri", "mongodb://localhost:27017")
                 .option("database", "amazon_reviews")
                 .option("collection", "metadata")
                 .load()
-                .filter(col("main_category").equalTo(sourceCategory))
-                .filter(col("parent_asin").notEqual(parentAsin))
+                .filter(col("main_category").equalTo(sourceCategory)
+                        .and(col("parent_asin").notEqual(parentAsin))
+                        .and(col("rating_number").gt(10))
+                        .and(col("average_rating").geq(3.0)))
                 .select(
-                        "parent_asin",
-                        "title",
-                        "price",
-                        "average_rating",
-                        "rating_number",
-                        "categories",
-                        "description",
-                        "main_category",
-                        "images"
+                        col("parent_asin"),
+                        col("title"),
+                        col("price"),
+                        col("average_rating"),
+                        col("rating_number"),
+                        col("main_category"),
+                        col("categories"),
+                        col("description"),
+                        col("images")
                 )
-                .repartition(8)
-                .cache();
-
-        long count = candidates.count();
-        if (count == 0) {
-            log.warn("No candidates found for category: {}", sourceCategory);
-            return null;
-        }
-        log.info("Found {} candidates in category {}", count, sourceCategory);
-        return candidates;
+                .repartition(2)
+                .persist(StorageLevel.MEMORY_AND_DISK_SER());
     }
+
 
     private Dataset<Row> calculateRatingScores(Dataset<Row> candidates) {
         return candidates
@@ -159,11 +217,13 @@ public class SparkRecommendationService {
 
         return candidates
                 .withColumn("keyword_score",
-                        when(arrays_overlap(
-                                split(lower(col("title")), " "),
-                                split(lit(sourceTitle), " ")
-                        ), lit(1.0))
-                                .otherwise(lit(0.5))
+                        when(
+                                arrays_overlap(
+                                        split(lower(col("title")), " "),
+                                        split(lit(sourceTitle), " ")
+                                ),
+                                lit(1.0)
+                        ).otherwise(lit(0.5))
                 )
                 .select("parent_asin", "keyword_score");
     }
@@ -181,10 +241,13 @@ public class SparkRecommendationService {
                         .select("parent_asin", "category_score");
             }
 
-            List<String> sourceCategoriesList = scala.collection.JavaConverters.seqAsJavaList(sourceCategories);
-            Column sourceCategoriesCol = array(sourceCategoriesList.stream()
-                    .map(functions::lit)
-                    .toArray(Column[]::new));
+            List<String> sourceCategoriesList = scala.collection.JavaConverters
+                    .seqAsJavaList(sourceCategories);
+            Column sourceCategoriesCol = array(
+                    sourceCategoriesList.stream()
+                            .map(functions::lit)
+                            .toArray(Column[]::new)
+            );
 
             return candidates
                     .withColumn("category_score",
@@ -194,9 +257,10 @@ public class SparkRecommendationService {
                                                     size(array_intersect(col("categories"), sourceCategoriesCol))
                                                             .divide(size(sourceCategoriesCol))
                                                             .multiply(0.8)
-                                                            .plus(0.2))
-                                                    .otherwise(0.2)
-                                    ))
+                                                            .plus(0.2)
+                                            ).otherwise(0.2)
+                                    )
+                    )
                     .select("parent_asin", "category_score");
         } catch (Exception e) {
             log.error("Error calculating category scores: {}", e.getMessage());
@@ -220,51 +284,34 @@ public class SparkRecommendationService {
                                         when(
                                                 col("price").leq(lit(sourcePrice))
                                                         .and(col("price").geq(lit(sourcePrice * 0.7)))
-                                                        .and(col("average_rating").geq(lit(4.0))), lit(1.0))
+                                                        .and(col("average_rating").geq(lit(4.0))),
+                                                lit(1.0)
+                                        )
                                                 .when(
                                                         col("price").geq(lit(sourcePrice))
-                                                                .and(col("price").leq(lit(sourcePrice * 1.3))), lit(0.8))
+                                                                .and(col("price").leq(lit(sourcePrice * 1.3))),
+                                                        lit(0.8)
+                                                )
                                                 .when(
                                                         col("price").lt(lit(sourcePrice * 0.7))
                                                                 .and(col("price").geq(lit(sourcePrice * 0.5)))
-                                                                .and(col("average_rating").geq(lit(3.5))), lit(0.7))
+                                                                .and(col("average_rating").geq(lit(3.5))),
+                                                        lit(0.7)
+                                                )
                                                 .otherwise(lit(0.3))
-                                ))
+                                )
+                )
                 .select("parent_asin", "price_score");
     }
-
-    private static UserDefinedFunction calculateAgeMatch = udf(
-            (String title, scala.collection.Seq<String> description) -> {
-                StringBuilder searchText = new StringBuilder();
-
-                if (title != null) {
-                    searchText.append(title.toLowerCase()).append(" ");
-                }
-
-                if (description != null && !description.isEmpty()) {
-                    scala.collection.JavaConverters.seqAsJavaListConverter(description)
-                            .asJava()
-                            .forEach(desc -> searchText.append(desc.toLowerCase()).append(" "));
-                }
-
-                String fullText = searchText.toString();
-
-                if (fullText.contains("0-2") || fullText.contains("baby")) return 1.0;
-                if (fullText.contains("2-4") || fullText.contains("toddler")) return 1.0;
-                if (fullText.contains("4-8") || fullText.contains("kid")) return 1.0;
-                if (fullText.contains("8-12")) return 1.0;
-                if (fullText.contains("12+") || fullText.contains("teen")) return 1.0;
-
-                return 0.5;
-            }, DataTypes.DoubleType
-    );
 
     private Dataset<Row> calculateAgeScores(Dataset<Row> candidates, Row sourceRow) {
         return candidates
                 .withColumn("age_score",
-                        callUDF("calculateAgeMatch",
+                        calculateAgeMatch.apply(
                                 col("title"),
-                                col("description")))
+                                col("description")
+                        )
+                )
                 .select("parent_asin", "age_score");
     }
 
@@ -307,12 +354,15 @@ public class SparkRecommendationService {
             if (!row.isNullAt(row.fieldIndex("price"))) {
                 product.setPrice(row.getDouble(row.fieldIndex("price")));
             }
+
             if (!row.isNullAt(row.fieldIndex("average_rating"))) {
                 product.setAverageRating(row.getDouble(row.fieldIndex("average_rating")));
             }
+
             if (!row.isNullAt(row.fieldIndex("rating_number"))) {
                 product.setRatingNumber(row.getInt(row.fieldIndex("rating_number")));
             }
+
             if (!row.isNullAt(row.fieldIndex("final_score"))) {
                 product.setFinalScore(row.getDouble(row.fieldIndex("final_score")));
             }
@@ -333,8 +383,7 @@ public class SparkRecommendationService {
                     product.setImages(images);
                 }
             } catch (Exception e) {
-                log.warn("Error processing images for product {}: {}",
-                        product.getTitle(), e.getMessage());
+                log.warn("Error processing images for product {}: {}", product.getTitle(), e.getMessage());
             }
 
             return product;
