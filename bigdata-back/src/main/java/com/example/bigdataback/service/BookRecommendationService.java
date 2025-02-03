@@ -14,7 +14,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import static org.apache.spark.sql.functions.*;
 
 @Service
@@ -22,13 +21,6 @@ import static org.apache.spark.sql.functions.*;
 @RequiredArgsConstructor
 public class BookRecommendationService {
     private final SparkSession spark;
-
-    @PostConstruct
-    public void init() {
-        spark.udf().register("calculateThemeMatch", calculateThemeMatch);
-        spark.udf().register("calculateAgeMatch", calculateAgeMatch);
-        log.info("Book UDFs registered successfully");
-    }
 
     public List<Product> getBookRecommendations(String parentAsin, Integer maxRecommendations) {
         try {
@@ -148,124 +140,135 @@ public class BookRecommendationService {
                 .select("parent_asin", "category_score");
     }
     private Dataset<Row> calculateThemeScores(Dataset<Row> candidates, Dataset<Row> sourceBook) {
-        String sourceTitle = sourceBook.first().getString(sourceBook.first().fieldIndex("title"));
-        List<String> sourceDesc = getListFromSeq(sourceBook.first(), "description");
+        // Configuration des stopwords
+        Column stopwordsArray = array(
+                lit("the"), lit("a"), lit("an"), lit("and"), lit("or"), lit("but"),
+                lit("in"), lit("on"), lit("at"), lit("to"), lit("for"), lit("of"),
+                lit("with"), lit("by"), lit("from"), lit("book"), lit("edition"), lit("volume")
+        );
 
-        spark.udf().register("calculateThemeMatchUDF",
-                (String title, scala.collection.Seq<String> description) -> {
-                    Set<String> themeKeywords = new HashSet<>();
-                    Set<String> sourceKeywords = new HashSet<>();
+        // Obtenir le texte source
+        List<String> sourceTexts = new ArrayList<>();
+        Row sourceRow = sourceBook.first();
+        String sourceTitle = getStringOrNull(sourceRow, "title");
+        if (sourceTitle != null) {
+            sourceTexts.add(sourceTitle);
+        }
+        List<String> sourceDesc = getListFromSeq(sourceRow, "description");
+        if (sourceDesc != null) {
+            sourceTexts.addAll(sourceDesc);
+        }
 
-                    Set<String> stopwords = new HashSet<>(Arrays.asList(
-                            "the", "a", "an", "and", "or", "but", "in", "on", "at", "to",
-                            "for", "of", "with", "by", "from", "book", "edition", "volume"
-                    ));
+        // Traitement des mots-clés source
+        Dataset<Row> sourceWords = spark.createDataset(sourceTexts, Encoders.STRING())
+                .select(explode(
+                        split(lower(
+                                regexp_replace(col("value"), "[^a-zA-Z\\s]", " ")
+                        ), "\\s+")
+                ).as("word"))
+                .where(length(col("word")).gt(2)
+                        .and(not(array_contains(stopwordsArray, col("word")))))
+                .distinct();
 
-                    addKeywords(sourceTitle, sourceKeywords, stopwords);
-                    if (sourceDesc != null) {
-                        sourceDesc.forEach(desc -> addKeywords(desc, sourceKeywords, stopwords));
-                    }
-
-                    addKeywords(title, themeKeywords, stopwords);
-                    if (description != null) {
-                        scala.collection.JavaConverters.seqAsJavaList(description)
-                                .forEach(desc -> addKeywords(desc, themeKeywords, stopwords));
-                    }
-
-                    if (sourceKeywords.isEmpty()) return 0.5;
-
-                    Set<String> intersection = new HashSet<>(sourceKeywords);
-                    intersection.retainAll(themeKeywords);
-
-                    return 0.2 + Math.min(0.8, (intersection.size() * 1.0 / sourceKeywords.size()));
-                }, DataTypes.DoubleType);
+        // Nombre total de mots-clés source
+        long sourceKeywordsCount = sourceWords.count();
+        if (sourceKeywordsCount == 0) {
+            return candidates
+                    .withColumn("theme_score", lit(0.5))
+                    .select("parent_asin", "theme_score");
+        }
 
         return candidates
+                // Analyse du titre et de la description
+                .select(
+                        col("parent_asin"),
+                        explode(
+                                array(
+                                        col("title"),
+                                        coalesce(array_join(col("description"), " "), lit(""))
+                                )
+                        ).as("text")
+                )
+                // Extraction des mots
+                .select(
+                        col("parent_asin"),
+                        explode(
+                                split(lower(
+                                        regexp_replace(col("text"), "[^a-zA-Z\\s]", " ")
+                                ), "\\s+")
+                        ).as("word")
+                )
+                // Filtrage des mots courts et stopwords
+                .where(length(col("word")).gt(2)
+                        .and(not(array_contains(stopwordsArray, col("word")))))
+                .distinct()
+                // Comparaison avec les mots-clés source
+                .join(sourceWords, "word")
+                .groupBy("parent_asin")
+                .agg(count("*").as("matching_words"))
+                // Calcul du score final
                 .withColumn("theme_score",
-                        callUDF("calculateThemeMatchUDF",
-                                col("title"),
-                                col("description")))
+                        lit(0.2).plus(
+                                least(
+                                        lit(0.8),
+                                        col("matching_words").divide(lit(sourceKeywordsCount))
+                                )
+                        ))
                 .select("parent_asin", "theme_score");
     }
-    private static UserDefinedFunction calculateThemeMatch = udf(
-            (String title, Seq<String> description, String sourceTitle, List<String> sourceDescription) -> {
-                Set<String> themeKeywords = new HashSet<>();
-                Set<String> sourceKeywords = new HashSet<>();
 
-                Set<String> stopwords = new HashSet<>(Arrays.asList(
-                        "the", "a", "an", "and", "or", "but", "in", "on", "at", "to",
-                        "for", "of", "with", "by", "from", "book", "edition", "volume"
-                ));
-
-                // Traiter le titre et la description source
-                addKeywords(sourceTitle, sourceKeywords, stopwords);
-                if (sourceDescription != null) {
-                    sourceDescription.forEach(desc -> addKeywords(desc, sourceKeywords, stopwords));
-                }
-
-                // Traiter le titre et la description du candidat
-                addKeywords(title, themeKeywords, stopwords);
-                if (description != null) {
-                    scala.collection.JavaConverters.seqAsJavaList(description)
-                            .forEach(desc -> addKeywords(desc, themeKeywords, stopwords));
-                }
-
-                if (sourceKeywords.isEmpty()) return 0.5;
-
-                Set<String> intersection = new HashSet<>(sourceKeywords);
-                intersection.retainAll(themeKeywords);
-
-                return 0.3 + Math.min(0.7, (intersection.size() * 1.0 / sourceKeywords.size()));
-            }, DataTypes.DoubleType
-    );
     private Dataset<Row> calculateAgeScores(Dataset<Row> candidates, Dataset<Row> sourceBook) {
         Row sourceRow = sourceBook.first();
         String sourceAgeRange = extractAgeRange(sourceRow);
 
+        if (sourceAgeRange == null) {
+            return candidates
+                    .withColumn("age_score", lit(0.5))
+                    .select("parent_asin", "age_score");
+        }
+
+        // Définir les tranches d'âge similaires de manière statique
+        Map<String, Set<String>> similarAges = Map.of(
+                "0-2", Set.of("baby", "infant", "toddler"),
+                "3-5", Set.of("preschool", "kindergarten"),
+                "6-8", Set.of("early reader", "first reader"),
+                "9-12", Set.of("middle grade", "elementary"),
+                "13-17", Set.of("young adult", "teen"),
+                "18+", Set.of("adult", "college")
+        );
+
+        // Convertir les mots-clés en une chaîne de recherche pour Spark SQL
+        String keywordsPattern = similarAges.getOrDefault(sourceAgeRange, Collections.emptySet())
+                .stream()
+                .collect(Collectors.joining("|", "(", ")"));
+
         return candidates
+                .withColumn("age_range",
+                        lower(
+                                concat_ws(" ",
+                                        coalesce(col("title"), lit("")),
+                                        coalesce(array_join(col("description"), " "), lit(""))
+                                )
+                        )
+                )
                 .withColumn("age_score",
-                        callUDF("calculateAgeMatch",
-                                col("title"),
-                                col("description"),
-                                lit(sourceAgeRange)))
+                        when(col("age_range").isNull(), 0.5)
+                                .when(col("age_range").rlike(sourceAgeRange), 1.0)
+                                .when(
+                                        col("age_range").rlike(keywordsPattern),
+                                        0.8
+                                )
+                                .otherwise(0.4)
+                )
+                .drop("age_range")
                 .select("parent_asin", "age_score");
     }
-
-    private static UserDefinedFunction calculateAgeMatch = udf(
-            (String title, scala.collection.Seq<String> description, String sourceAgeRange) -> {
-                if (sourceAgeRange == null) return 0.5;
-
-                String bookAge = extractAgeFromText(title);
-                if (bookAge == null && description != null) {
-                    for (String desc : scala.collection.JavaConverters.seqAsJavaList(description)) {
-                        bookAge = extractAgeFromText(desc);
-                        if (bookAge != null) break;
-                    }
-                }
-
-                if (bookAge == null) return 0.5;
-
-                if (bookAge.equals(sourceAgeRange)) return 1.0;
-
-                // Tranches d'âge similaires
-                Map<String, Set<String>> similarAges = new HashMap<>();
-                similarAges.put("0-2", Set.of("baby", "infant", "toddler"));
-                similarAges.put("3-5", Set.of("preschool", "kindergarten"));
-                similarAges.put("6-8", Set.of("early reader", "first reader"));
-                similarAges.put("9-12", Set.of("middle grade", "elementary"));
-                similarAges.put("13-17", Set.of("young adult", "teen"));
-                similarAges.put("18+", Set.of("adult", "college"));
-
-                for (Map.Entry<String, Set<String>> entry : similarAges.entrySet()) {
-                    if ((entry.getKey().equals(sourceAgeRange) && entry.getValue().contains(bookAge)) ||
-                            (entry.getKey().equals(bookAge) && entry.getValue().contains(sourceAgeRange))) {
-                        return 0.8;
-                    }
-                }
-
-                return 0.4;
-            }, DataTypes.DoubleType
-    );
+    private static boolean containsAgeKeywords(String ageRange, List<String> keywords) {
+        if (ageRange == null || keywords == null || keywords.isEmpty()) {
+            return false;
+        }
+        return keywords.stream().anyMatch(ageRange::contains);
+    }
 
     private Dataset<Row> calculatePriceScores(Dataset<Row> candidates, Dataset<Row> sourceBook) {
         Double sourcePrice = getDoubleOrNull(sourceBook.first(), "price");
@@ -310,14 +313,6 @@ public class BookRecommendationService {
                         .and(col("final_score").gt(0.35)))
                 .orderBy(col("final_score").desc())
                 .limit(maxRecommendations);
-    }
-
-    private static void addKeywords(String text, Set<String> keywords, Set<String> stopwords) {
-        if (text == null) return;
-        Arrays.stream(text.toLowerCase().split("\\W+"))
-                .filter(word -> word.length() > 2)
-                .filter(word -> !stopwords.contains(word))
-                .forEach(keywords::add);
     }
 
     private String extractAgeRange(Row row) {
