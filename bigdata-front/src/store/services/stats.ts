@@ -54,7 +54,23 @@ export const statsApi = createApi({
         >({
             query: () => `/products/review-helpfulness`,
         }),
+        getSentiment: builder.query<
+            { positiveCount: number; neutralCount: number; negativeCount: number },
+            {
+                parentAsin: string;
+            }
+        >({
+            query: ({ parentAsin }) => `/sentiment/Productsentiments?parentAsin=${parentAsin}`,
+        }),
     }),
 });
 
-export const { useGetTopRatedQuery, useGetRatingDistributionQuery, useGetReviewTimelineQuery, useGetVerifiedComparisonQuery, useGetPriceDistributionQuery, useGetReviewHelpfulnessQuery } = statsApi;
+export const {
+    useGetTopRatedQuery,
+    useGetRatingDistributionQuery,
+    useGetReviewTimelineQuery,
+    useGetSentimentQuery,
+    useGetVerifiedComparisonQuery,
+    useGetPriceDistributionQuery,
+    useGetReviewHelpfulnessQuery,
+} = statsApi;
